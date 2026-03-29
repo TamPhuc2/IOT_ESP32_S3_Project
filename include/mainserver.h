@@ -4,19 +4,17 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include "global.h"
+#include <FS.h>
+#include <SPIFFS.h>
+#include <ESPAsyncWebServer.h>
 
-#define LED1_PIN 48
-#define LED2_PIN 41
+#define POWER_PIN 47
+#define LED_PIN 38
 #define BOOT_PIN 0
 //extern WebServer server;
 
 //extern bool isAPMode;
 
-
-
-
-String mainPage();
-String settingsPage();
 
 void startAP();
 void setupServer();
