@@ -48,6 +48,20 @@ struct SensorData {
     int state;
 };
 
+#define POWER_PIN 47
+#define LED_PIN 38
+#define FAN_PIN 48
+
+#define LED_1_PIN   0
+#define LED_2_PIN   1
+
+// struct holding device states for Web Server
+struct DeviceStates {
+    bool powerOn;
+    bool led_1;
+    bool led_2;
+};
+
 // struct holding system handles injected into tasks
 struct SystemHandles {
     QueueHandle_t qLed;         // queue for led_blinky task
@@ -55,6 +69,8 @@ struct SystemHandles {
     QueueHandle_t qLcd;         // queue for temp_humi_lcd_display task
     SemaphoreHandle_t semLcd;   // binary semaphore to wake up LCD
     SemaphoreHandle_t mutexI2C; // mutex of I2C bus
+    SemaphoreHandle_t mutexDeviceState; // mutex for DeviceStates
+    DeviceStates deviceState;   // device states protected by mutex
 };
 
 #endif
