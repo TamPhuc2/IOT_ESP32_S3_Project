@@ -66,6 +66,42 @@ function updateSensors() {
 setInterval(updateSensors, 5000);
 updateSensors();
 
+function loadStatus() {
+  fetch('/status')
+    .then(response => response.json())
+    .then(data => {
+      
+      if (data.power) {
+        document.getElementById("btn-power").innerText = "Tắt Nguồn";
+        document.getElementById("powerStatus").innerText = "Power ON";
+      } else {
+        document.getElementById("btn-power").innerText = "Bật Nguồn";
+        document.getElementById("powerStatus").innerText = "Power OFF";
+      }
+
+      
+      if (!data.led1) {
+        document.getElementById("btn-led1").innerText = "Tắt Đèn";
+        document.getElementById("led1Status").innerText = "LED1 ON";
+      } else {
+        document.getElementById("btn-led1").innerText = "Bật Đèn";
+        document.getElementById("led1Status").innerText = "LED1 OFF";
+      }
+      
+      if (!data.led2) {
+        document.getElementById("btn-led2").innerText = "Tắt Đèn";
+        document.getElementById("led2Status").innerText = "LED2 ON";
+      } else {
+        document.getElementById("btn-led2").innerText = "Bật Đèn";
+        document.getElementById("led2Status").innerText = "LED2 OFF";
+      }
+    })
+    .catch(error => console.error("Lỗi khi load trạng thái:", error));
+}
+
+// Gọi khi trang vừa load
+window.onload = loadStatus;
+
 // Hàm xử lý nút nguồn
 document.getElementById("btn-power").addEventListener("click", function() {
   let currentText = this.innerText;
@@ -75,11 +111,12 @@ document.getElementById("btn-power").addEventListener("click", function() {
     .then(response => response.text())
     .then(data => {
       console.log("ESP32 trả về:", data);
-      if (newState === "on") {
-        this.innerText = "Tắt Nguồn";
-      } else {
-        this.innerText = "Bật Nguồn";
-      }
+      loadStatus();
+      // if (newState === "on") {
+      //   this.innerText = "Tắt Nguồn";
+      // } else {
+      //   this.innerText = "Bật Nguồn";
+      // }
     })
     .catch(error => {
       console.error("Lỗi khi gửi yêu cầu:", error);
@@ -87,18 +124,39 @@ document.getElementById("btn-power").addEventListener("click", function() {
 });
 
 // Hàm xử lý nút led 1
-document.getElementById("btn-led").addEventListener("click", function(){
+document.getElementById("btn-led1").addEventListener("click", function(){
   let currentText = this.innerText;
   let newState = currentText.includes("Bật") ? "on" : "off";
-  fetch('/led?state=' + newState)
+  fetch('/led1?state=' + newState)
     .then(response => response.text())
     .then(data => {
       console.log("ESP32 trả về:", data);
-      if (newState === "on") {
-        this.innerText = "Tắt Đèn";
-      } else {
-        this.innerText = "Bật Đèn";
-      }
+      loadStatus();
+      // if (newState === "on") {
+      //   this.innerText = "Tắt Đèn";
+      // } else {
+      //   this.innerText = "Bật Đèn";
+      // }
+    })
+    .catch(error => {
+      console.error("Lỗi khi gửi yêu cầu:", error);
+    });
+});
+
+// Hàm xử lý nút led 2
+document.getElementById("btn-led2").addEventListener("click", function(){
+  let currentText = this.innerText;
+  let newState = currentText.includes("Bật") ? "on" : "off";
+  fetch('/led2?state=' + newState)
+    .then(response => response.text())
+    .then(data => {
+      console.log("ESP32 trả về:", data);
+      loadStatus();
+      // if (newState === "on") {
+      //   this.innerText = "Tắt Đèn";
+      // } else {
+      //   this.innerText = "Bật Đèn";
+      // }
     })
     .catch(error => {
       console.error("Lỗi khi gửi yêu cầu:", error);
@@ -119,6 +177,20 @@ document.getElementById("btn-fan").addEventListener("click", function(){
       } else {
         this.innerText = "Bật Quạt";
       }
+    })
+    .catch(error => {
+      console.error("Lỗi khi gửi yêu cầu:", error);
+    });
+});
+
+// Hàm xử lý nút tắt hết
+document.getElementById("btn-off").addEventListener("click", function(){
+  fetch('/off')
+    .then(response => response.text())
+    .then(data => {
+      console.log("ESP32 trả về:", data);
+      document.getElementById("allStatus").innerText = data;
+      loadStatus();
     })
     .catch(error => {
       console.error("Lỗi khi gửi yêu cầu:", error);

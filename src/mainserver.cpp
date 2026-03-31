@@ -27,6 +27,16 @@ void handleFile(WebServer& server, const char* path, const char* type) {
     }
 }
 
+void handleStatus(WebServer& server, SystemHandles* handles) {
+  String json = "{";
+  json += "\"power\":" + String(digitalRead(POWER_PIN));
+  json += ",\"led1\":" + String(handles->deviceState.led_1 ? 1 : 0);
+  json += ",\"led2\":" + String(handles->deviceState.led_2 ? 1 : 0);
+  json += "}";
+  server.send(200, "application/json", json);
+}
+
+
 // Handler for sensor data JSON
 void handleSensors(WebServer& server, SystemHandles* handles) {
     SensorData d = {0, 0, 0};
@@ -70,7 +80,7 @@ void handleLed_1(WebServer& server, SystemHandles* handles) {
         rgb_4_led.show();
         xSemaphoreGive(handles->mutexDeviceState);
         
-        server.send(200, "text/plain", turnOn ? "LED ON" : "LED OFF");
+        server.send(200, "text/plain", turnOn ? "LED1 ON" : "LED1 OFF");
     } else {
         server.send(400, "text/plain", "Missing state");
     }
@@ -91,10 +101,26 @@ void handleLed_2(WebServer& server, SystemHandles* handles) {
         rgb_4_led.show();
         xSemaphoreGive(handles->mutexDeviceState);
         
-        server.send(200, "text/plain", turnOn ? "Fan ON" : "Fan OFF");
+        server.send(200, "text/plain", turnOn ? "LED2 ON" : "LED2 OFF");
     } else {
         server.send(400, "text/plain", "Missing state");
     }
+}
+
+void handleOff(WebServer& server, SystemHandles* handles) {
+    ensureRgbInit();
+
+    xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
+    handles->deviceState.led_1 = false;
+    handles->deviceState.led_2 = false;
+
+    // Tắt tất cả pixel
+    rgb_4_led.setPixelColor(LED_1_PIN, rgb_4_led.Color(0, 0, 0));
+    rgb_4_led.setPixelColor(LED_2_PIN, rgb_4_led.Color(0, 0, 0));
+    rgb_4_led.show();
+    xSemaphoreGive(handles->mutexDeviceState);
+
+    server.send(200, "text/plain", "All devices OFF");
 }
 
 // Placeholder for WiFi connection (can be expanded)
@@ -145,9 +171,10 @@ void main_server_task(void *pvParameters) {
 
     server.on("/sensors", HTTP_GET, [&server, handles]() { handleSensors(server, handles); });
     server.on("/power", HTTP_GET, [&server, handles]() { handlePower(server, handles); });
-    server.on("/led", HTTP_GET, [&server, handles]() { handleLed_1(server, handles); });
-    server.on("/fan", HTTP_GET, [&server, handles]() { handleLed_2(server, handles); });
-
+    server.on("/led1", HTTP_GET, [&server, handles]() { handleLed_1(server, handles); });
+    server.on("/led2", HTTP_GET, [&server, handles]() { handleLed_2(server, handles); });
+    server.on("/status", HTTP_GET, [&server, handles]() { handleStatus(server, handles); });
+    server.on("/off", HTTP_GET, [&server, handles]() { handleOff(server, handles); });
     startAP();
     server.begin();
 

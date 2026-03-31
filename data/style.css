@@ -39,7 +39,7 @@ body {
 }
 .control { 
   grid-area: control;
-  height: 350px;
+  height: 420px;
   width: 670px;
 }
 .chart-temp { 
@@ -148,8 +148,8 @@ button:hover {
   transform: scale(1.05);
 }
 
-/* Nút đèn */
-.btn-led {
+/* Nút đèn 1 */
+.btn-led1 {
   background: #00ffcc;
   color: #000;
   font-weight: bold;
@@ -157,11 +157,24 @@ button:hover {
   width: 120px;   
   text-align: center; 
 }
-.btn-led:hover {
+.btn-led1:hover {
   background: #00e0b0;
   transform: scale(1.05);
 }
 
+/* Nút đèn 2 */
+.btn-led2 {
+  background: #00ffcc;
+  color: #000;
+  font-weight: bold;
+  float: right;
+  width: 120px;   
+  text-align: center; 
+}
+.btn-led2:hover {
+  background: #00e0b0;
+  transform: scale(1.05);
+}
 /* Nút quạt */
 .btn-fan {
   background: #00ffcc;
