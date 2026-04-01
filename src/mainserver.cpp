@@ -33,6 +33,7 @@ void handleStatus(WebServer& server, SystemHandles* handles) {
   json += ",\"led1\":" + String(handles->deviceState.led_1 ? 1 : 0);
   json += ",\"led2\":" + String(handles->deviceState.led_2 ? 1 : 0);
   json += "}";
+  Serial.println(json);
   server.send(200, "application/json", json);
 }
 
@@ -65,7 +66,7 @@ void handlePower(WebServer& server, SystemHandles* handles) {
     }
 }
 
-// Handler for LED toggle
+// Handler for LED1 toggle
 void handleLed_1(WebServer& server, SystemHandles* handles) {
     if (server.hasArg("state")) {
         String state = server.arg("state");
@@ -80,13 +81,13 @@ void handleLed_1(WebServer& server, SystemHandles* handles) {
         rgb_4_led.show();
         xSemaphoreGive(handles->mutexDeviceState);
         
-        server.send(200, "text/plain", turnOn ? "LED1 ON" : "LED1 OFF");
+        server.send(200, "application/json", "{\"led1\":" + String(turnOn ? 1 : 0) + "}");
     } else {
         server.send(400, "text/plain", "Missing state");
     }
 }
 
-// Handler for Fan toggle
+// Handler for LED2 toggle
 void handleLed_2(WebServer& server, SystemHandles* handles) {
     if (server.hasArg("state")) {
         String state = server.arg("state");
@@ -101,7 +102,7 @@ void handleLed_2(WebServer& server, SystemHandles* handles) {
         rgb_4_led.show();
         xSemaphoreGive(handles->mutexDeviceState);
         
-        server.send(200, "text/plain", turnOn ? "LED2 ON" : "LED2 OFF");
+        server.send(200, "application/json", "{\"led2\":" + String(turnOn ? 1 : 0) + "}");;
     } else {
         server.send(400, "text/plain", "Missing state");
     }
