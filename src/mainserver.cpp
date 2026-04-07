@@ -169,7 +169,7 @@ void main_server_task(void *pvParameters) {
             server.send(404, "text/plain", "Not Found");
         }
     });
-
+    
     server.on("/sensors", HTTP_GET, [&server, handles]() { handleSensors(server, handles); });
     server.on("/power", HTTP_GET, [&server, handles]() { handlePower(server, handles); });
     server.on("/led1", HTTP_GET, [&server, handles]() { handleLed_1(server, handles); });
