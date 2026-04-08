@@ -1,4 +1,10 @@
 document.addEventListener("DOMContentLoaded", function () {
+
+  if (typeof Chart === "undefined") {
+    console.error("Chart.js chưa load!");
+    return;
+  }
+
   const labels = [];
   const tempData = [];
   const humData = [];
@@ -155,32 +161,42 @@ function loadStatus(){
 }
 
 // Hàm xử lý trạng thái led 1
+
 function loadStatus1() {
   fetch('/status')
     .then(response => response.json())
     .then(data => {
+      let btn = document.getElementById("btn-led1");
+
       if (data.led1 === 1) {
-        document.getElementById("btn-led1").innerText = "Tắt Đèn";
-        document.getElementById("led1Status").innerText = "LED1 ON";
+        btn.innerText = "Tắt Đèn";
+        btn.classList.add("on");
+        btn.classList.remove("off");
       } else {
-        document.getElementById("btn-led1").innerText = "Bật Đèn";
-        document.getElementById("led1Status").innerText = "LED1 OFF";
+        btn.innerText = "Bật Đèn";
+        btn.classList.add("off");
+        btn.classList.remove("on");
       }
     })
     .catch(error => console.error("Lỗi khi load trạng thái:", error));
 }
 
 // Hàm xử lý trạng thái led 2
+
 function loadStatus2() {
   fetch('/status')
     .then(response => response.json())
     .then(data => {
+      let btn = document.getElementById("btn-led2");
+
       if (data.led2 === 1) {
-        document.getElementById("btn-led2").innerText = "Tắt Đèn";
-        document.getElementById("led2Status").innerText = "LED2 ON";
+        btn.innerText = "Tắt Đèn";
+        btn.classList.add("on");
+        btn.classList.remove("off");
       } else {
-        document.getElementById("btn-led2").innerText = "Bật Đèn";
-        document.getElementById("led2Status").innerText = "LED2 OFF";
+        btn.innerText = "Bật Đèn";
+        btn.classList.add("off");
+        btn.classList.remove("on");
       }
     })
     .catch(error => console.error("Lỗi khi load trạng thái:", error));
@@ -191,6 +207,7 @@ window.onload = loadStatus;
 
 
 // Hàm xử lý nút nguồn
+
 document.getElementById("btn-power").addEventListener("click", function() {
   let currentText = this.innerText;
   let newState = currentText.includes("Bật") ? "on" : "off";
@@ -198,20 +215,21 @@ document.getElementById("btn-power").addEventListener("click", function() {
   fetch('/power?state=' + newState)
     .then(response => response.text())
     .then(data => {
-      console.log("ESP32 trả về:", data);
-      // loadStatus();
       if (newState === "on") {
         this.innerText = "Tắt Nguồn";
+        this.classList.add("on");
+        this.classList.remove("off");
       } else {
         this.innerText = "Bật Nguồn";
+        this.classList.add("off");
+        this.classList.remove("on");
       }
     })
-    .catch(error => {
-      console.error("Lỗi khi gửi yêu cầu:", error);
-    });
+    .catch(error => console.error(error));
 });
 
 // Hàm xử lý nút led 1
+
 document.getElementById("btn-led1").addEventListener("click", function(){
   let currentText = this.innerText;
   let newState = currentText.includes("Bật") ? "on" : "off";
@@ -219,15 +237,13 @@ document.getElementById("btn-led1").addEventListener("click", function(){
   fetch('/led1?state=' + newState)
     .then(response => response.text())
     .then(data => {
-      console.log("ESP32 trả về:", data);
-      loadStatus();
+      loadStatus(); // giữ nguyên
     })
-    .catch(error => {
-      console.error("Lỗi khi gửi yêu cầu:", error);
-    });
+    .catch(error => console.error(error));
 });
 
 // Hàm xử lý nút led 2
+
 document.getElementById("btn-led2").addEventListener("click", function(){
   let currentText = this.innerText;
   let newState = currentText.includes("Bật") ? "on" : "off";
@@ -235,44 +251,46 @@ document.getElementById("btn-led2").addEventListener("click", function(){
   fetch('/led2?state=' + newState)
     .then(response => response.text())
     .then(data => {
-      console.log("ESP32 trả về:", data);
       loadStatus();
     })
-    .catch(error => {
-      console.error("Lỗi khi gửi yêu cầu:", error);
-    });
+    .catch(error => console.error(error));
 });
 
-
 // Hàm xử lý nút fan 
+
 document.getElementById("btn-fan").addEventListener("click", function(){
   let currentText = this.innerText;
   let newState = currentText.includes("Bật") ? "on" : "off";
+
   fetch('/fan?state=' + newState)
     .then(response => response.text())
     .then(data => {
-      console.log("ESP32 trả về:", data);
       if (newState === "on") {
         this.innerText = "Tắt Quạt";
+        this.classList.add("on");
+        this.classList.remove("off");
       } else {
         this.innerText = "Bật Quạt";
+        this.classList.add("off");
+        this.classList.remove("on");
       }
     })
-    .catch(error => {
-      console.error("Lỗi khi gửi yêu cầu:", error);
-    });
+    .catch(error => console.error(error));
 });
-
 // Hàm xử lý nút tắt hết
+
 document.getElementById("btn-off").addEventListener("click", function(){
   fetch('/off')
     .then(response => response.text())
     .then(data => {
-      console.log("ESP32 trả về:", data);
       loadStatus();
-      document.getElementById("allStatus").innerText = data;
+
+      document.querySelectorAll("button").forEach(btn => {
+        if (!btn.classList.contains("btn-off")) { 
+          btn.classList.add("off");
+          btn.classList.remove("on");
+        }
+      });
     })
-    .catch(error => {
-      console.error("Lỗi khi gửi yêu cầu:", error);
-    });
+    .catch(error => console.error(error));
 });

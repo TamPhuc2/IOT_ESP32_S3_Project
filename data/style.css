@@ -9,7 +9,14 @@ body {
   margin: 0;
   padding: 20px;
 }
-
+/* ===== TITILE ===== */
+.page-title {
+  text-align: center;       
+  font-size: 1.6em;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #333;
+}
 /* ===== TOP BAR ===== */
 .top-bar {
   display: flex;
@@ -132,9 +139,16 @@ button {
   font-size: 0.85em;
 }
 
-button:hover {
-  background: #00e0b0;
-  transform: scale(1.05);
+/* ===== TRẠNG THÁI ON ===== */
+button.on {
+  background: #00ffcc;
+  color: #000;
+}
+
+/* ===== TRẠNG THÁI OFF (tối hơn) ===== */
+button.off {
+  background: #00997a; /* màu tối hơn */
+  color: #fff;
 }
 
 /* Button variants */
@@ -150,14 +164,19 @@ button:hover {
   font-size: 0.7em;
 }
 
+/* .btn-off:hover {
+  background: #cc0000;
+} */ 
+ 
+ /* ===== NÚT TẮT TẤT CẢ  ===== */
 .btn-off {
-  background: #ff4d4d;
-  color: #fff;
-  font-size: 0.7em;
+  background: #ff4d4d !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
 }
 
 .btn-off:hover {
-  background: #cc0000;
+  background: #cc0000 !important;
 }
 
 /* ===== CHART ===== */

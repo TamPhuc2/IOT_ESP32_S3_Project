@@ -158,8 +158,9 @@ void main_server_task(void *pvParameters) {
     // Setup Routes using Lambdas to capture server and handles
     server.on("/", [&server]() { handleFile(server, "/index.html", "text/html"); });
     server.on("/style.css", [&server]() { handleFile(server, "/style.css", "text/css"); });
+    server.on("/chart.js", [&server]() {handleFile(server, "/chart.js", "application/javascript"); }); 
     server.on("/script.js", [&server]() { handleFile(server, "/script.js", "application/javascript"); });
-    
+
     // Serve icons dynamically
     server.onNotFound([&server]() {
         String uri = server.uri();
