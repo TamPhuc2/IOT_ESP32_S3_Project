@@ -15,5 +15,6 @@
         "initializer_list": "cpp",
         "span": "cpp",
         "regex": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "C:/Users/Ha Trong Son/Desktop/HCMUT/K252/IOT/IOT_ESP32_S3_Project/lib/ArduinoJson/src"
 }

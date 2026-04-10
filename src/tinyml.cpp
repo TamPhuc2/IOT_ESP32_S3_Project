@@ -54,8 +54,8 @@ void tiny_ml_task(void *pvParameters)
 
         // Prepare input data (e.g., sensor readings)
         // For a simple example, let's assume a single float input
-        float temp = 25.0;
-        float humi = 60.0;
+        float temp = 80.0;
+        float humi = 80.0;
         // get_sensor_data(&temp, &humi);
         input->data.f[0] = temp;
         input->data.f[1] = humi;

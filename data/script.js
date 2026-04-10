@@ -144,7 +144,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // Cập nhật mỗi 10 giây
-  setInterval(updateSensors, 10000);
+  setInterval(updateSensors, 5000);
   updateSensors();
 });
 
