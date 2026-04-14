@@ -46,33 +46,36 @@ void setupTinyML()
 
 void tiny_ml_task(void *pvParameters)
 {
-
+    SystemHandles* handles = (SystemHandles*)pvParameters;
+    SensorData data;
+    TinyMLData predict_data;
+    String predict_state;
     setupTinyML();
+    
+    for (;;) {
+        // Chờ tín hiệu từ queue trigger 
+        int trigger;
+        if (xQueueReceive(handles->qTrigger, &trigger, portMAX_DELAY) == pdTRUE) {
+            // Lấy dữ liệu sensor
+            if (xQueuePeek(handles->qLcd, &data, 0) == pdTRUE) {
+                input->data.f[0] = data.temperature;
+                input->data.f[1] = data.humidity;
+            }
 
-    while (1)
-    {
+            // Chạy inference
+            TfLiteStatus status = interpreter->Invoke();
+            if (status == kTfLiteOk) {
+                float result = output->data.f[0];
+                if (result > 0.5) {
+                    predict_data.predict_state = "NORMAL";
+                } else {
+                    predict_data.predict_state = "CRITICAL";
+                }
+                predict_data.predict_value = result;
 
-        // Prepare input data (e.g., sensor readings)
-        // For a simple example, let's assume a single float input
-        float temp = 25.0;
-        float humi = 60.0;
-        // get_sensor_data(&temp, &humi);
-        input->data.f[0] = temp;
-        input->data.f[1] = humi;
-
-        // Run inference
-        TfLiteStatus invoke_status = interpreter->Invoke();
-        if (invoke_status != kTfLiteOk)
-        {
-            error_reporter->Report("Invoke failed");
-            return;
+                // Gửi kết quả vào queue TinyML
+                xQueueOverwrite(handles->qTinyML, &predict_data);
+            }
         }
-
-        // Get and process output
-        float result = output->data.f[0];
-        Serial.print("Inference result: ");
-        Serial.println(result);
-
-        vTaskDelay(5000);
     }
 }

@@ -51,17 +51,17 @@
       <div id="humChange"></div>
     </div>
 
-<div class="card control">
+    <div class="card control">
       <div class="header">
         <h1>Bảng điều khiển chính</h1>
       </div>
-      <div class="control-row">
+      <!-- <div class="control-row">
       <h2> 
         <img src="icon\power.png" alt="Icon" style="width:24px; vertical-align:middle; margin-right:8px;">
         Nguồn chính  
       </h2>
       <button id="btn-power" class="btn-power">Bật Nguồn</button>
-      </div> 
+      </div>  -->
       <div class="control-row">
       <h2>
         <img src="icon\lamp.png" alt="Icon" style="width:24px; vertical-align:middle; margin-right:8px;">
@@ -76,19 +76,35 @@
       </h2>
       <button id="btn-led2" class="btn-led2">Bật Đèn</button>
       </div>
-      <div class="control-row">
+      <!-- <div class="control-row">
       <h2>
         <img src="icon\fan.png" alt="Icon" style="width:24px; vertical-align:middle; margin-right:8px;">
         Quạt
       </h2>
       <button id="btn-fan" class="btn-fan">Bật Quạt</button>
-      </div>
+      </div> -->
       <h2>  
         <div class="control-center">
-          <button id="btn-refresh" class="btn-refresh">Làm Mới Dữ Liệu</button>
+          <!-- <button id="btn-refresh" class="btn-refresh">Làm Mới Dữ Liệu</button> -->
           <button id="btn-off" class="btn-off">Tắt Tất Cả Thiết Bị</button>
         </div>
       </h2>
+    </div>
+
+    <div class="card tinyML">
+      <div class="header">
+        <h1>Dự đoán trạng thái</h1>
+      </div>
+      <div class="control-row">
+        <h2>
+          <div id="predict-state">
+          </div>
+        </h2>
+        <label class="switch">
+          <input type="checkbox" id="switch">
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
   
 

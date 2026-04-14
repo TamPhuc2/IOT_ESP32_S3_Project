@@ -29,8 +29,7 @@ void handleFile(WebServer& server, const char* path, const char* type) {
 
 void handleStatus(WebServer& server, SystemHandles* handles) {
   String json = "{";
-  json += "\"power\":" + String(digitalRead(POWER_PIN));
-  json += ",\"led1\":" + String(handles->deviceState.led_1 ? 1 : 0);
+  json += "\"led1\":" + String(handles->deviceState.led_1 ? 1 : 0);
   json += ",\"led2\":" + String(handles->deviceState.led_2 ? 1 : 0);
   json += "}";
   Serial.println(json);
@@ -47,23 +46,6 @@ void handleSensors(WebServer& server, SystemHandles* handles) {
     }
     String json = "{\"temp\":" + String(d.temperature, 1) + ",\"hum\":" + String(d.humidity, 1) + "}";
     server.send(200, "application/json", json);
-}
-
-// Handler for Power toggle
-void handlePower(WebServer& server, SystemHandles* handles) {
-    if (server.hasArg("state")) {
-        String state = server.arg("state");
-        bool turnOn = (state == "on");
-        
-        xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
-        handles->deviceState.powerOn = turnOn;
-        digitalWrite(POWER_PIN, turnOn ? HIGH : LOW);
-        xSemaphoreGive(handles->mutexDeviceState);
-        
-        server.send(200, "text/plain", turnOn ? "Power ON" : "Power OFF");
-    } else {
-        server.send(400, "text/plain", "Missing state");
-    }
 }
 
 // Handler for LED1 toggle
@@ -124,6 +106,36 @@ void handleOff(WebServer& server, SystemHandles* handles) {
     server.send(200, "text/plain", "All devices OFF");
 }
 
+void handleTinyML(WebServer& server, SystemHandles* handles) {
+    String switchParam = server.arg("switch");
+    String json;
+
+    if (switchParam == "1") {
+        // Switch bật lấy thông tin tinyML
+        int trigger = 1;
+        xQueueSend(handles->qTrigger, &trigger, 0);
+        TinyMLData predict_data = {0, ""};
+        // Đọc kết quả TinyML
+        if (handles->qTinyML != NULL && 
+            xQueuePeek(handles->qTinyML, &predict_data, 100) == pdTRUE) {
+            
+            json = "{";
+            json += "\"state\":\"on\",";
+            json += "\"label\":\"" + String(predict_data.predict_state) + "\",";
+            json += "\"value\":" + String(predict_data.predict_value);
+            json += "}";
+            Serial.println(predict_data.predict_value);
+            Serial.println(predict_data.predict_state);
+        } else {
+            json = "{\"state\":\"on\",\"label\":\"WAITING\"}";
+        }
+    } else {
+        json = "{\"state\":\"\"}";
+    }
+
+    server.send(200, "application/json", json);
+}
+
 // Placeholder for WiFi connection (can be expanded)
 void handleConnect(WebServer& server) {
     server.send(200, "text/plain", "Connecting...");
@@ -172,11 +184,11 @@ void main_server_task(void *pvParameters) {
     });
     
     server.on("/sensors", HTTP_GET, [&server, handles]() { handleSensors(server, handles); });
-    server.on("/power", HTTP_GET, [&server, handles]() { handlePower(server, handles); });
     server.on("/led1", HTTP_GET, [&server, handles]() { handleLed_1(server, handles); });
     server.on("/led2", HTTP_GET, [&server, handles]() { handleLed_2(server, handles); });
     server.on("/status", HTTP_GET, [&server, handles]() { handleStatus(server, handles); });
     server.on("/off", HTTP_GET, [&server, handles]() { handleOff(server, handles); });
+    server.on("/tinyML", HTTP_GET, [&server, handles]() { handleTinyML(server, handles); });
     startAP();
     server.begin();
 

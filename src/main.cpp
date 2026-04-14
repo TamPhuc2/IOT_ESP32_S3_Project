@@ -6,6 +6,7 @@
 #include "mainserver.h"
 #include "tinyml.h"
 #include "coreiot.h"
+#include "task_wifi.h"
 
 // Static instance holding our system handles (to be passed as a void* to tasks)
 static SystemHandles sysHandles;
@@ -18,6 +19,8 @@ void setup()
   sysHandles.qLed = xQueueCreate(1, sizeof(SensorData));
   sysHandles.qNeo = xQueueCreate(1, sizeof(SensorData));
   sysHandles.qLcd = xQueueCreate(1, sizeof(SensorData));
+  sysHandles.qTinyML  = xQueueCreate(1, sizeof(TinyMLData));
+  sysHandles.qTrigger = xQueueCreate(1, sizeof(int));
 
   // Initialize Binary Semaphore (for LCD) and Mutex (for I2C and Device States)
   sysHandles.semLcd = xSemaphoreCreateBinary();
@@ -25,7 +28,6 @@ void setup()
   sysHandles.mutexDeviceState = xSemaphoreCreateMutex();
   
   // Initialize device default states
-  sysHandles.deviceState.powerOn = false;
   sysHandles.deviceState.led_1 = false;
   sysHandles.deviceState.led_2 = false;
 
@@ -36,12 +38,11 @@ void setup()
   xTaskCreate(temp_humi_lcd_display, "Test LCD", 2048, (void*)&sysHandles, 2, NULL);
   
   xTaskCreate(main_server_task, "Task Main Server" ,8192, (void*)&sysHandles, 2, NULL);
-  //xTaskCreate( tiny_ml_task, "Tiny ML Task" ,2048  ,NULL  ,2 , NULL);
-  // xTaskCreate(coreiot_task, "CoreIOT Task" ,4096  ,NULL  ,2 , NULL);
+  xTaskCreate(tiny_ml_task, "Tiny ML Task" ,2048  ,(void*)&sysHandles  ,2 , NULL);
+  // xTaskCreate(coreiot_task, "CoreIOT Task" ,4096  ,(void*)&sysHandles  ,2 , NULL);
   // xTaskCreate(Task_Toogle_BOOT, "Task_Toogle_BOOT", 4096, NULL, 2, NULL);
 }
 
 void loop(){
-  // FreeRTOS setup, empty loop
   vTaskDelete(NULL);
 }

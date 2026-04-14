@@ -48,6 +48,11 @@ struct SensorData {
     int state;
 };
 
+struct TinyMLData{
+    float predict_value;
+    String predict_state;
+};
+
 #define POWER_PIN 47
 #define LED_PIN 38
 #define FAN_PIN 48
@@ -57,7 +62,6 @@ struct SensorData {
 
 // struct holding device states for Web Server
 struct DeviceStates {
-    bool powerOn;
     bool led_1;
     bool led_2;
 };
@@ -67,6 +71,8 @@ struct SystemHandles {
     QueueHandle_t qLed;         // queue for led_blinky task
     QueueHandle_t qNeo;         // queue for neo_blinky task
     QueueHandle_t qLcd;         // queue for temp_humi_lcd_display task
+    QueueHandle_t qTinyML;      // queue for tinyML task
+    QueueHandle_t qTrigger;     // queue trigger để đánh thức TinyML task
     SemaphoreHandle_t semLcd;   // binary semaphore to wake up LCD
     SemaphoreHandle_t mutexI2C; // mutex of I2C bus
     SemaphoreHandle_t mutexDeviceState; // mutex for DeviceStates
