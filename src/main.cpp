@@ -30,12 +30,13 @@ void setup()
   // Initialize device default states
   sysHandles.deviceState.led_1 = false;
   sysHandles.deviceState.led_2 = false;
+  sysHandles.deviceState.tinyml_mode = false;
 
   // Tasks creation - passing the sysHandles pointer to pvParameters
   xTaskCreate(led_blinky, "Task LED Blink", 2048, (void*)&sysHandles, 2, NULL);
   xTaskCreate(neo_blinky, "Task NEO Blink", 2048, (void*)&sysHandles, 2, NULL);
   xTaskCreate(temp_humi_monitor, "Task TEMP HUMI Monitor", 2048, (void*)&sysHandles, 2, NULL);
-  xTaskCreate(temp_humi_lcd_display, "Test LCD", 2048, (void*)&sysHandles, 2, NULL);
+  xTaskCreate(temp_humi_lcd_display, "Test LCD", 4096, (void*)&sysHandles, 2, NULL);
   
   xTaskCreate(main_server_task, "Task Main Server" ,8192, (void*)&sysHandles, 2, NULL);
   xTaskCreate(tiny_ml_task, "Tiny ML Task" ,2048  ,(void*)&sysHandles  ,2 , NULL);

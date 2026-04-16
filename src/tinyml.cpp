@@ -49,7 +49,7 @@ void tiny_ml_task(void *pvParameters)
     SystemHandles* handles = (SystemHandles*)pvParameters;
     SensorData data;
     TinyMLData predict_data;
-    String predict_state;
+    String last_predict_state = "";
     setupTinyML();
     
     for (;;) {
@@ -67,14 +67,25 @@ void tiny_ml_task(void *pvParameters)
             if (status == kTfLiteOk) {
                 float result = output->data.f[0];
                 if (result > 0.5) {
-                    predict_data.predict_state = "NORMAL";
-                } else {
                     predict_data.predict_state = "CRITICAL";
+                } else {
+                    predict_data.predict_state = "NORMAL";
                 }
                 predict_data.predict_value = result;
 
                 // Gửi kết quả vào queue TinyML
                 xQueueOverwrite(handles->qTinyML, &predict_data);
+
+                xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
+                bool is_tinyml = handles->deviceState.tinyml_mode;
+                xSemaphoreGive(handles->mutexDeviceState);
+
+                if (is_tinyml) {
+                    if (predict_data.predict_state != last_predict_state) {
+                        xSemaphoreGive(handles->semLcd);
+                        last_predict_state = predict_data.predict_state;
+                    }
+                }
             }
         }
     }

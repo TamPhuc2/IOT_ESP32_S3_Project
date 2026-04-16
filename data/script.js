@@ -143,6 +143,18 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       lastHum = data.hum;
 
+      // Polling TinyML predictions when switch is ON
+      if (document.getElementById("switch").checked) {
+          fetch('/tinyML?switch=1')
+            .then(res => res.json())
+            .then(tData => {
+                if (tData.state === "on") {
+                    document.getElementById("predict-state").innerText = tData.label;
+                }
+            })
+            .catch(error => console.error("Lỗi khi load TinyML: ", error));
+      }
+
       })
       .catch(error => {
         console.error("Lỗi khi lấy dữ liệu:", error);

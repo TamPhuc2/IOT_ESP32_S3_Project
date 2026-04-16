@@ -64,6 +64,7 @@ struct TinyMLData{
 struct DeviceStates {
     bool led_1;
     bool led_2;
+    bool tinyml_mode;
 };
 
 // struct holding system handles injected into tasks

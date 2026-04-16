@@ -49,12 +49,12 @@ void handleSensors(WebServer& server, SystemHandles* handles) {
 }
 
 // Handler for LED1 toggle
-void handleLed_1(WebServer& server, SystemHandles* handles) {
+void handleLed_1(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
     if (server.hasArg("state")) {
         String state = server.arg("state");
         bool turnOn = (state == "on");
 
-        ensureRgbInit(); // Dùng shared object, không tạo mới
+        //ensureRgbInit(); // Dùng shared object, không tạo mới
         
         xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
         handles->deviceState.led_1 = turnOn;
@@ -70,12 +70,12 @@ void handleLed_1(WebServer& server, SystemHandles* handles) {
 }
 
 // Handler for LED2 toggle
-void handleLed_2(WebServer& server, SystemHandles* handles) {
+void handleLed_2(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
     if (server.hasArg("state")) {
         String state = server.arg("state");
         bool turnOn = (state == "on");
 
-        ensureRgbInit(); // Dùng shared object, không tạo mới
+        //ensureRgbInit(); // Dùng shared object, không tạo mới
 
         xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
         handles->deviceState.led_2 = turnOn;
@@ -90,8 +90,8 @@ void handleLed_2(WebServer& server, SystemHandles* handles) {
     }
 }
 
-void handleOff(WebServer& server, SystemHandles* handles) {
-    ensureRgbInit();
+void handleOff(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
+    //ensureRgbInit();
 
     xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
     handles->deviceState.led_1 = false;
@@ -111,6 +111,15 @@ void handleTinyML(WebServer& server, SystemHandles* handles) {
     String json;
 
     if (switchParam == "1") {
+        xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
+        if (!handles->deviceState.tinyml_mode) {
+            handles->deviceState.tinyml_mode = true;
+            xSemaphoreGive(handles->mutexDeviceState);
+            xSemaphoreGive(handles->semLcd); // wake up LCD
+        } else {
+            xSemaphoreGive(handles->mutexDeviceState);
+        }
+
         // Switch bật lấy thông tin tinyML
         int trigger = 1;
         xQueueSend(handles->qTrigger, &trigger, 0);
@@ -130,6 +139,15 @@ void handleTinyML(WebServer& server, SystemHandles* handles) {
             json = "{\"state\":\"on\",\"label\":\"WAITING\"}";
         }
     } else {
+        xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
+        if (handles->deviceState.tinyml_mode) {
+            handles->deviceState.tinyml_mode = false;
+            xSemaphoreGive(handles->mutexDeviceState);
+            xSemaphoreGive(handles->semLcd); // wake up LCD
+        } else {
+            xSemaphoreGive(handles->mutexDeviceState);
+        }
+
         json = "{\"state\":\"\"}";
     }
 
@@ -154,15 +172,23 @@ void main_server_task(void *pvParameters) {
     if (!SPIFFS.begin(true)) {
         Serial.println("SPIFFS Mount Failed");
     }
-    else {
-        Serial.println("Ok roi ku");
-    }
+    // else {
+    //     Serial.println("Ok roi ku");
+    // }
 
     // Initialize Pins
     pinMode(POWER_PIN, OUTPUT);
     pinMode(LED_PIN, OUTPUT);
     pinMode(FAN_PIN, OUTPUT);
     pinMode(0, INPUT_PULLUP); // BOOT Button
+
+    // Init NeoPixel local
+    Adafruit_NeoPixel rgb_4_led(4, 8, NEO_GBR + NEO_KHZ800);
+    rgb_4_led.begin();
+    rgb_4_led.setBrightness(30);
+    rgb_4_led.clear();
+    rgb_4_led.show();
+
 
     // Local WebServer instance
     WebServer server(80);
@@ -184,10 +210,10 @@ void main_server_task(void *pvParameters) {
     });
     
     server.on("/sensors", HTTP_GET, [&server, handles]() { handleSensors(server, handles); });
-    server.on("/led1", HTTP_GET, [&server, handles]() { handleLed_1(server, handles); });
-    server.on("/led2", HTTP_GET, [&server, handles]() { handleLed_2(server, handles); });
+    server.on("/led1", HTTP_GET, [&server, handles, &rgb_4_led]() { handleLed_1(server, handles, rgb_4_led); });
+    server.on("/led2", HTTP_GET, [&server, handles, &rgb_4_led]() { handleLed_2(server, handles, rgb_4_led); });
     server.on("/status", HTTP_GET, [&server, handles]() { handleStatus(server, handles); });
-    server.on("/off", HTTP_GET, [&server, handles]() { handleOff(server, handles); });
+    server.on("/off", HTTP_GET, [&server, handles, &rgb_4_led]() { handleOff(server, handles, rgb_4_led); });
     server.on("/tinyML", HTTP_GET, [&server, handles]() { handleTinyML(server, handles); });
     startAP();
     server.begin();
