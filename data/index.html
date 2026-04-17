@@ -22,6 +22,7 @@
     <div class="right-text">
       <img src="icon\connect.png" alt="Icon" style="width:24px; vertical-align:middle; margin-right:8px;">
       Đang kết nối
+      <img src="icon\wifi.png" alt="WiFi Config" id="wifi-icon" style="width:24px; vertical-align:middle; margin-left:15px; cursor:pointer;" title="Cấu hình WiFi & MQTT">
     </div>
   </div>
   <div class="grid-container">
@@ -123,6 +124,45 @@
     </div>
 </div>
     
+<div id="configModal" class="modal">
+    <div class="modal-content card">
+      <span class="close-btn">&times;</span>
+      <div class="header" style="justify-content: center; margin-bottom: 20px;">
+        <h2>Cấu Hình Thiết Bị</h2>
+      </div>
+      <form id="configForm">
+        <div class="section-title">Mạng Wi-Fi</div>
+        <div class="form-group">
+          <label for="ssid">Tên WiFi (SSID)</label>
+          <input type="text" id="ssid" placeholder="Nhập tên WiFi" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="pass">Mật khẩu WiFi</label>
+          <input type="password" id="pass" placeholder="Nhập mật khẩu" required>
+        </div>
+
+        <div class="section-title">Nền tảng CoreIOT</div>
+        <div class="form-group">
+          <label for="server">Địa chỉ Server (Broker)</label>
+          <input type="text" id="server" value="app.coreiot.io" required>
+        </div>
+
+        <div class="form-group">
+          <label for="port">Cổng (Port)</label>
+          <input type="number" id="port" value="1883" required>
+        </div>
+
+        <div class="form-group">
+          <label for="token">Access Token (Thiết bị)</label>
+          <input type="text" id="token" placeholder="Ví dụ: g7drm1am..." required>
+        </div>
+
+        <button type="submit" class="btn-submit">Lưu & Khởi động lại mạng</button>
+        <div id="statusMessage"></div>
+      </form>
+    </div>
+  </div>
   <!-- Chart.js -->
   <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
   <script src="chart.js"></script>

@@ -1,6 +1,4 @@
 #include "temp_humi_monitor.h"
-DHT20 dht20;
-LiquidCrystal_I2C lcd(33,16,2);
 
 // format lcd buffer 
 static void temp_humi_update_buffer_lcd(char buf[2][17], float temp, float humi, int state, bool isTinyML, String predict_state){
@@ -36,6 +34,7 @@ static void temp_humi_update_buffer_lcd(char buf[2][17], float temp, float humi,
 }
 
 void temp_humi_monitor(void *pvParameters){
+  DHT20 dht20;
   SystemHandles* handles = (SystemHandles*)pvParameters;
   int lastState = -1;
 
@@ -109,6 +108,7 @@ void temp_humi_monitor(void *pvParameters){
 }
 
 void temp_humi_lcd_display(void *pvParameters){
+    LiquidCrystal_I2C lcd(33,16,2);
     SystemHandles* handles = (SystemHandles*)pvParameters;
     SensorData data;
     char local_lcd_buffer[2][17] = {"                ", "                "};

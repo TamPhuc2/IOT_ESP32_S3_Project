@@ -74,7 +74,7 @@ bool check_info_File(bool check)
   {
     if (!check)
     {
-      startAP();
+      //startAP();
     }
     return false;
   }

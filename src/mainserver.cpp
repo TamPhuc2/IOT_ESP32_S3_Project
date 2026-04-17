@@ -37,12 +37,9 @@ void handleLed_1(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &r
     if (server.hasArg("state")) {
         String state = server.arg("state");
         bool turnOn = (state == "on");
-
-        //ensureRgbInit(); // Dùng shared object, không tạo mới
         
         xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
         handles->deviceState.led_1 = turnOn;
-        // Set pixel LED_1 theo state, pixel LED_2 giữ nguyên (không reset)
         rgb_4_led.setPixelColor(LED_1_PIN, turnOn ? rgb_4_led.Color(255, 255, 255) : rgb_4_led.Color(0, 0, 0));
         rgb_4_led.show();
         xSemaphoreGive(handles->mutexDeviceState);
@@ -61,7 +58,6 @@ void handleLed_2(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &r
         
         xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
         handles->deviceState.led_2 = turnOn;
-        // Set pixel LED_2 theo state, pixel LED_1 giữ nguyên (không reset)
         rgb_4_led.setPixelColor(LED_2_PIN, turnOn ? rgb_4_led.Color(255, 255, 255) : rgb_4_led.Color(0, 0, 0));
         rgb_4_led.show();
         xSemaphoreGive(handles->mutexDeviceState);
@@ -73,13 +69,10 @@ void handleLed_2(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &r
 }
 
 void handleOff(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
-    //ensureRgbInit();
 
     xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
     handles->deviceState.led_1 = false;
     handles->deviceState.led_2 = false;
-
-    // Tắt tất cả pixel
     rgb_4_led.setPixelColor(LED_1_PIN, rgb_4_led.Color(0, 0, 0));
     rgb_4_led.setPixelColor(LED_2_PIN, rgb_4_led.Color(0, 0, 0));
     rgb_4_led.show();
@@ -136,16 +129,42 @@ void handleTinyML(WebServer& server, SystemHandles* handles) {
     server.send(200, "application/json", json);
 }
 
-// Placeholder for WiFi connection (can be expanded)
-void handleConnect(WebServer& server) {
-    server.send(200, "text/plain", "Connecting...");
+// // Placeholder for WiFi connection (can be expanded)
+// void handleConnect(WebServer& server) {
+//     server.send(200, "text/plain", "Connecting...");
+// }
+
+// Handle dynamic config from test.html
+void handleConnect(WebServer& server, SystemHandles* handles) {
+    if (server.hasArg("ssid") && server.hasArg("pass") && server.hasArg("token")) {
+        // Safe Zero-Global update using mutex
+        xSemaphoreTake(handles->mutexConfig, portMAX_DELAY);
+        
+        // Lưu lại cấu hình cũ phòng trường hợp mất mạng
+        handles->sysData.fallback_ssid = handles->sysData.wifi_ssid;
+        handles->sysData.fallback_pass = handles->sysData.wifi_pass;
+
+        handles->sysData.wifi_ssid = server.arg("ssid");
+        handles->sysData.wifi_pass = server.arg("pass");
+        handles->sysData.coreiot_server = server.arg("server");
+        handles->sysData.coreiot_port = server.arg("port");
+        handles->sysData.coreiot_token = server.arg("token");
+        xSemaphoreGive(handles->mutexConfig);
+        
+        server.send(200, "text/plain", "Cấu hình thành công! ESP32 đang khởi động lại kết nối...");
+        
+        // Disconnect forces STA task (via WiFiEvent) to retry with new credentials
+        WiFi.disconnect();
+    } else {
+        server.send(400, "text/plain", "Thiếu tham số bắt buộc");
+    }
 }
 
-void startAP() {
-    WiFi.mode(WIFI_AP);
-    // Use globals for ssid/password as they are defined in global.cpp
-    WiFi.softAP(ssid.c_str(), password.c_str());
-}
+// void startAP() {
+//     WiFi.mode(WIFI_AP);
+//     // Use globals for ssid/password as they are defined in global.cpp
+//     WiFi.softAP(ssid.c_str(), password.c_str());
+// }
 
 void main_server_task(void *pvParameters) {
     SystemHandles* handles = (SystemHandles*)pvParameters;
@@ -181,6 +200,9 @@ void main_server_task(void *pvParameters) {
     server.on("/chart.js", [&server]() {handleFile(server, "/chart.js", "application/javascript"); }); 
     server.on("/script.js", [&server]() { handleFile(server, "/script.js", "application/javascript"); });
 
+    //
+    server.on("/connect", HTTP_GET, [&server, handles]() { handleConnect(server, handles); });
+
     // Serve icons dynamically
     server.onNotFound([&server]() {
         String uri = server.uri();
@@ -197,17 +219,39 @@ void main_server_task(void *pvParameters) {
     server.on("/status", HTTP_GET, [&server, handles]() { handleStatus(server, handles); });
     server.on("/off", HTTP_GET, [&server, handles, &rgb_4_led]() { handleOff(server, handles, rgb_4_led); });
     server.on("/tinyML", HTTP_GET, [&server, handles]() { handleTinyML(server, handles); });
-    startAP();
     server.begin();
+
+    // Variables for hardware-state tracking
+    bool last_led_1 = false;
+    bool last_led_2 = false;
 
     while (1) {
         server.handleClient();
+
+        // Zero-Global Hardware Polling
+        xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
+        bool current_led_1 = handles->deviceState.led_1;
+        bool current_led_2 = handles->deviceState.led_2;
+        xSemaphoreGive(handles->mutexDeviceState);
+
+        // Apply physical changes if state has diverged from tracking
+        if (current_led_1 != last_led_1) {
+            rgb_4_led.setPixelColor(LED_1_PIN, current_led_1 ? rgb_4_led.Color(255, 255, 255) : rgb_4_led.Color(0, 0, 0));
+            rgb_4_led.show();
+            last_led_1 = current_led_1;
+        }
+
+        if (current_led_2 != last_led_2) {
+            rgb_4_led.setPixelColor(LED_2_PIN, current_led_2 ? rgb_4_led.Color(255, 255, 255) : rgb_4_led.Color(0, 0, 0));
+            rgb_4_led.show();
+            last_led_2 = current_led_2;
+        }
         
         // BOOT Button to force AP mode (if switched to STA)
         if (digitalRead(0) == LOW) {
             vTaskDelay(pdMS_TO_TICKS(100));
             if (digitalRead(0) == LOW) {
-                startAP();
+                //startAP();
             }
         }
         

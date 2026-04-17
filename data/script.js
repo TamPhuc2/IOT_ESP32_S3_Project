@@ -164,6 +164,80 @@ document.addEventListener("DOMContentLoaded", function () {
   // Cập nhật mỗi 10 giây
   setInterval(updateSensors, 10000);
   updateSensors();
+
+    // ===== LOGIC POPUP CẤU HÌNH WIFI & MQTT =====
+  const modal = document.getElementById("configModal");
+  const wifiIcon = document.getElementById("wifi-icon");
+  const closeBtn = document.querySelector(".close-btn");
+  const configForm = document.getElementById("configForm");
+
+  if (wifiIcon) {
+    wifiIcon.addEventListener("click", function() {
+      modal.classList.add("show");
+    });
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", function() {
+      modal.classList.remove("show");
+    });
+  }
+
+  window.addEventListener("click", function(event) {
+    if (event.target === modal) {
+      modal.classList.remove("show");
+    }
+  });
+
+  if (configForm) {
+    configForm.addEventListener("submit", function(e) {
+      e.preventDefault();
+      
+      const btn = document.querySelector(".btn-submit");
+      const statusMsg = document.getElementById("statusMessage");
+      
+      btn.innerText = "Đang gửi dữ liệu...";
+      btn.style.opacity = 0.7;
+      btn.disabled = true;
+
+      const ssid = encodeURIComponent(document.getElementById("ssid").value);
+      const pass = encodeURIComponent(document.getElementById("pass").value);
+      const server = encodeURIComponent(document.getElementById("server").value);
+      const port = encodeURIComponent(document.getElementById("port").value);
+      const token = encodeURIComponent(document.getElementById("token").value);
+
+      const url = `/connect?ssid=${ssid}&pass=${pass}&server=${server}&port=${port}&token=${token}`;
+
+      fetch(url)
+        .then(response => response.text())
+        .then(text => {
+          statusMsg.style.display = "block";
+          statusMsg.className = "success";
+          statusMsg.innerHTML = "💾 " + text;
+          btn.innerText = "Thành công!";
+          
+          setTimeout(() => {
+            modal.classList.remove("show");
+            btn.innerText = "Lưu & Khởi động lại mạng";
+            btn.style.opacity = 1;
+            btn.disabled = false;
+            statusMsg.style.display = "none";
+          }, 3000);
+        })
+        .catch(err => {
+          statusMsg.style.display = "block";
+          statusMsg.className = "error";
+          statusMsg.innerHTML = "⚠️ Mất kết nối tới thiết bị (Có thể mạch đang Restart mạng).";
+          btn.innerText = "Đã gửi lệnh";
+          
+          setTimeout(() => {
+            btn.style.opacity = 1;
+            btn.disabled = false;
+          }, 3000);
+        });
+    });
+  }
+
 });
 
 
@@ -248,48 +322,104 @@ function loadStatus2() {
 // Xử lý trạng thái load trang
 window.onload = loadStatus;
 
-// Hàm xử lý nút led 1
+// // Hàm xử lý nút led 1
 
-document.getElementById("btn-led1").addEventListener("click", function(){
-  let currentText = this.innerText;
-  let newState = currentText.includes("Bật") ? "on" : "off";
+// document.getElementById("btn-led1").addEventListener("click", function(){
+//   let currentText = this.innerText;
+//   let newState = currentText.includes("Bật") ? "on" : "off";
 
-  fetch('/led1?state=' + newState)
-    .then(response => response.text())
-    .then(data => {
-      loadStatus(); // giữ nguyên
-    })
-    .catch(error => console.error(error));
-});
+//   fetch('/led1?state=' + newState)
+//     .then(response => response.text())
+//     .then(data => {
+//       loadStatus(); // giữ nguyên
+//     })
+//     .catch(error => console.error(error));
+// });
 
-// Hàm xử lý nút led 2
+// // Hàm xử lý nút led 2
 
-document.getElementById("btn-led2").addEventListener("click", function(){
-  let currentText = this.innerText;
-  let newState = currentText.includes("Bật") ? "on" : "off";
+// document.getElementById("btn-led2").addEventListener("click", function(){
+//   let currentText = this.innerText;
+//   let newState = currentText.includes("Bật") ? "on" : "off";
 
-  fetch('/led2?state=' + newState)
-    .then(response => response.text())
-    .then(data => {
-      loadStatus();
-    })
-    .catch(error => console.error(error));
-});
+//   fetch('/led2?state=' + newState)
+//     .then(response => response.text())
+//     .then(data => {
+//       loadStatus();
+//     })
+//     .catch(error => console.error(error));
+// });
+
+// ===== LOGIC ĐIỀU KHIỂN THIẾT BỊ =====
+  document.getElementById("btn-led1").addEventListener("click", function(){
+    let currentText = this.innerText;
+    let newState = currentText.includes("Bật") ? "on" : "off";
+
+    fetch('/led1?state=' + newState)
+      .then(response => response.text())
+      .then(data => {
+        if (newState === "on") {
+          this.innerText = "Tắt Đèn";
+          this.classList.add("on");
+          this.classList.remove("off");
+        } else {
+          this.innerText = "Bật Đèn";
+          this.classList.add("off");
+          this.classList.remove("on");
+        }
+      })
+      .catch(error => console.error(error));
+  });
+
+  document.getElementById("btn-led2").addEventListener("click", function(){
+    let currentText = this.innerText;
+    let newState = currentText.includes("Bật") ? "on" : "off";
+
+    fetch('/led2?state=' + newState)
+      .then(response => response.text())
+      .then(data => {
+        if (newState === "on") {
+          this.innerText = "Tắt Đèn";
+          this.classList.add("on");
+          this.classList.remove("off");
+        } else {
+          this.innerText = "Bật Đèn";
+          this.classList.add("off");
+          this.classList.remove("on");
+        }
+      })
+      .catch(error => console.error(error));
+  });
 
 
 // Hàm xử lý nút tắt hết
-document.getElementById("btn-off").addEventListener("click", function(){
-  fetch('/off')
-    .then(response => response.text())
-    .then(data => {
-      console.log("ESP32 trả về:", data);
-      loadStatus();
-      document.getElementById("allStatus").innerText = data;
-    })
-    .catch(error => {
-      console.error("Lỗi khi gửi yêu cầu:", error);
-    });
-});
+// document.getElementById("btn-off").addEventListener("click", function(){
+//   fetch('/off')
+//     .then(response => response.text())
+//     .then(data => {
+//       console.log("ESP32 trả về:", data);
+//       loadStatus();
+//       document.getElementById("allStatus").innerText = data;
+//     })
+//     .catch(error => {
+//       console.error("Lỗi khi gửi yêu cầu:", error);
+//     });
+// });
+
+  document.getElementById("btn-off").addEventListener("click", function(){
+    fetch('/off')
+      .then(response => response.text())
+      .then(data => {
+        document.querySelectorAll("button").forEach(btn => {
+          if (!btn.classList.contains("btn-off") && !btn.classList.contains("btn-refresh") && !btn.classList.contains("btn-submit")) { 
+            btn.innerText = "Bật Đèn";
+            btn.classList.add("off");
+            btn.classList.remove("on");
+          }
+        });
+      })
+      .catch(error => console.error(error));
+  });
 
 // Hàm xử lý switch tinyML
 document.getElementById("switch").addEventListener("change",function(){
@@ -304,5 +434,6 @@ document.getElementById("switch").addEventListener("change",function(){
     })
     .catch(error => console.error(error));
 });
+
 
 
