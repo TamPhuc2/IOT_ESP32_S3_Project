@@ -33,52 +33,130 @@ void handleSensors(WebServer& server, SystemHandles* handles) {
 }
 
 // Handler for LED1 toggle
+// void handleLed_1(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
+//     if (server.hasArg("state")) {
+//         String state = server.arg("state");
+//         bool turnOn = (state == "on");
+        
+//         xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
+//         handles->deviceState.led_1 = turnOn;
+//         rgb_4_led.setPixelColor(LED_1_PIN, turnOn ? rgb_4_led.Color(255, 255, 255) : rgb_4_led.Color(0, 0, 0));
+//         rgb_4_led.show();
+//         xSemaphoreGive(handles->mutexDeviceState);
+        
+//         server.send(200, "application/json", "{\"led1\":" + String(turnOn ? 1 : 0) + "}");
+//     } else {
+//         server.send(400, "text/plain", "Missing state");
+//     }
+// }
 void handleLed_1(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
+
+    xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
+
     if (server.hasArg("state")) {
         String state = server.arg("state");
-        bool turnOn = (state == "on");
-        
-        xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
-        handles->deviceState.led_1 = turnOn;
-        rgb_4_led.setPixelColor(LED_1_PIN, turnOn ? rgb_4_led.Color(255, 255, 255) : rgb_4_led.Color(0, 0, 0));
-        rgb_4_led.show();
-        xSemaphoreGive(handles->mutexDeviceState);
-        
-        server.send(200, "application/json", "{\"led1\":" + String(turnOn ? 1 : 0) + "}");
+        handles->deviceState.led_1 = (state == "on");
     } else {
-        server.send(400, "text/plain", "Missing state");
+        handles->deviceState.led_1 = !handles->deviceState.led_1;
     }
-}
 
+    bool led1 = handles->deviceState.led_1;
+    bool led2 = handles->deviceState.led_2;
+
+    rgb_4_led.setPixelColor(LED_1_PIN,
+        led1 ? rgb_4_led.Color(255,255,255)
+             : rgb_4_led.Color(0,0,0));
+    rgb_4_led.show();
+
+    xSemaphoreGive(handles->mutexDeviceState);
+
+    // ===== JSON LOG =====
+    String json = "{";
+    json += "\"led1\":" + String(led1 ? 1 : 0);
+    json += ",\"led2\":" + String(led2 ? 1 : 0);
+    json += "}";
+    Serial.println(json);
+
+    server.send(200, "application/json", json);
+}
 // Handler for LED2 toggle
+// void handleLed_2(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
+//     if (server.hasArg("state")) {
+//         String state = server.arg("state");
+//         bool turnOn = (state == "on");
+        
+//         xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
+//         handles->deviceState.led_2 = turnOn;
+//         rgb_4_led.setPixelColor(LED_2_PIN, turnOn ? rgb_4_led.Color(255, 255, 255) : rgb_4_led.Color(0, 0, 0));
+//         rgb_4_led.show();
+//         xSemaphoreGive(handles->mutexDeviceState);
+        
+//         server.send(200, "application/json", "{\"led2\":" + String(turnOn ? 1 : 0) + "}");;
+//     } else {
+//         server.send(400, "text/plain", "Missing state");
+//     }
+// }
+
 void handleLed_2(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
+
+    xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
+
     if (server.hasArg("state")) {
         String state = server.arg("state");
-        bool turnOn = (state == "on");
-        
-        xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
-        handles->deviceState.led_2 = turnOn;
-        rgb_4_led.setPixelColor(LED_2_PIN, turnOn ? rgb_4_led.Color(255, 255, 255) : rgb_4_led.Color(0, 0, 0));
-        rgb_4_led.show();
-        xSemaphoreGive(handles->mutexDeviceState);
-        
-        server.send(200, "application/json", "{\"led2\":" + String(turnOn ? 1 : 0) + "}");;
+        handles->deviceState.led_2 = (state == "on");
     } else {
-        server.send(400, "text/plain", "Missing state");
+        handles->deviceState.led_2 = !handles->deviceState.led_2;
     }
-}
 
+    bool led1 = handles->deviceState.led_1;
+    bool led2 = handles->deviceState.led_2;
+
+    rgb_4_led.setPixelColor(LED_2_PIN,
+        led2 ? rgb_4_led.Color(255,255,255)
+             : rgb_4_led.Color(0,0,0));
+    rgb_4_led.show();
+
+    xSemaphoreGive(handles->mutexDeviceState);
+
+    // ===== JSON LOG =====
+    String json = "{";
+    json += "\"led1\":" + String(led1 ? 1 : 0);
+    json += ",\"led2\":" + String(led2 ? 1 : 0);
+    json += "}";
+    Serial.println(json);
+
+    server.send(200, "application/json", json);
+}
+// void handleOff(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
+
+//     xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
+//     handles->deviceState.led_1 = false;
+//     handles->deviceState.led_2 = false;
+//     rgb_4_led.setPixelColor(LED_1_PIN, rgb_4_led.Color(0, 0, 0));
+//     rgb_4_led.setPixelColor(LED_2_PIN, rgb_4_led.Color(0, 0, 0));
+//     rgb_4_led.show();
+//     xSemaphoreGive(handles->mutexDeviceState);
+
+//     server.send(200, "text/plain", "All devices OFF");
+// }
 void handleOff(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
 
     xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
+
     handles->deviceState.led_1 = false;
     handles->deviceState.led_2 = false;
-    rgb_4_led.setPixelColor(LED_1_PIN, rgb_4_led.Color(0, 0, 0));
-    rgb_4_led.setPixelColor(LED_2_PIN, rgb_4_led.Color(0, 0, 0));
+
+    rgb_4_led.setPixelColor(LED_1_PIN, rgb_4_led.Color(0,0,0));
+    rgb_4_led.setPixelColor(LED_2_PIN, rgb_4_led.Color(0,0,0));
     rgb_4_led.show();
+
     xSemaphoreGive(handles->mutexDeviceState);
 
-    server.send(200, "text/plain", "All devices OFF");
+    // ===== JSON LOG =====
+    String json = "{\"led1\":0,\"led2\":0}";
+    Serial.println(json);
+
+    server.send(200, "application/json", json);
 }
 
 void handleTinyML(WebServer& server, SystemHandles* handles) {
