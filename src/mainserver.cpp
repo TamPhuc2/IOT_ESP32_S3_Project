@@ -1,21 +1,5 @@
 #include "mainserver.h"
 
-// Shared static NeoPixel object for web server LED control
-// Declared at file scope so both handleLed_1 and handleLed_2 share the same pixel buffer
-static Adafruit_NeoPixel rgb_4_led(4, 8, NEO_GBR + NEO_KHZ800);
-static bool rgb_4_led_initialized = false;
-
-static void ensureRgbInit() {
-    if (!rgb_4_led_initialized) {
-        rgb_4_led.begin();
-        rgb_4_led.setBrightness(30);
-        rgb_4_led.clear();
-        rgb_4_led.show();
-        rgb_4_led_initialized = true;
-    }
-}
-
-
 // Helper to serve files from SPIFFS
 void handleFile(WebServer& server, const char* path, const char* type) {
     File file = SPIFFS.open(path, "r");
@@ -74,9 +58,7 @@ void handleLed_2(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &r
     if (server.hasArg("state")) {
         String state = server.arg("state");
         bool turnOn = (state == "on");
-
-        //ensureRgbInit(); // Dùng shared object, không tạo mới
-
+        
         xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
         handles->deviceState.led_2 = turnOn;
         // Set pixel LED_2 theo state, pixel LED_1 giữ nguyên (không reset)
