@@ -34,27 +34,29 @@ void setup()
   sysHandles.deviceState.tinyml_mode = false;
 
     // Initialize Zero-Global credentials Default
-  sysHandles.sysData.wifi_ssid = "tp";
-  sysHandles.sysData.wifi_pass = "0123456789"; // Requirement
-  sysHandles.sysData.fallback_ssid = "";
-  sysHandles.sysData.fallback_pass = "";
-  sysHandles.sysData.coreiot_server = "app.coreiot.io";
-  sysHandles.sysData.coreiot_port = "1883"; // Note: HTTP will just use the server root, port 1883 might not be needed for HTTP
-  sysHandles.sysData.coreiot_token = "ohvefr8ygpajb7f9fr9n";
-  sysHandles.sysData.ap_ssid = "MY ESP32_S3 NETWORK";
-  sysHandles.sysData.ap_pass = "12345678";
+  // sysHandles.sysData.wifi_ssid = "tp";
+  // sysHandles.sysData.wifi_pass = "0123456789"; // Requirement
+  // sysHandles.sysData.fallback_ssid = "";
+  // sysHandles.sysData.fallback_pass = "";
+  // sysHandles.sysData.coreiot_server = "app.coreiot.io";
+  // sysHandles.sysData.coreiot_port = "1883"; // Note: HTTP will just use the server root, port 1883 might not be needed for HTTP
+  // sysHandles.sysData.coreiot_token = "ohvefr8ygpajb7f9fr9n";
+  // sysHandles.sysData.ap_ssid = "MY ESP32_S3 NETWORK";
+  // sysHandles.sysData.ap_pass = "12345678";
 
   // Init Event-Driven WiFi (Zero-blocking)
-  init_wifi(&sysHandles);
+  // init_wifi(&sysHandles);
+  init_wifi();
 
   // Tasks creation - passing the sysHandles pointer to pvParameters
-  xTaskCreate(led_blinky, "Task LED Blink", 2048, (void*)&sysHandles, 2, NULL);
+  // xTaskCreate(led_blinky, "Task LED Blink", 2048, (void*)&sysHandles, 2, NULL);
   xTaskCreate(neo_blinky, "Task NEO Blink", 2048, (void*)&sysHandles, 2, NULL);
   xTaskCreate(temp_humi_monitor, "Task TEMP HUMI Monitor", 2048, (void*)&sysHandles, 2, NULL);
   xTaskCreate(temp_humi_lcd_display, "Test LCD", 4096, (void*)&sysHandles, 2, NULL);
   
   xTaskCreate(main_server_task, "Task Main Server" ,8192, (void*)&sysHandles, 2, NULL);
   xTaskCreate(tiny_ml_task, "Tiny ML Task" ,2048  ,(void*)&sysHandles  ,2 , NULL);
+  xTaskCreate(wifi_task, "wifi_task" ,2048  ,(void*)&sysHandles  ,2 , NULL);
   xTaskCreate(coreiot_task, "CoreIOT Task" ,4096  ,(void*)&sysHandles  ,2 , NULL);
   
   // xTaskCreate(Task_Toogle_BOOT, "Task_Toogle_BOOT", 4096, NULL, 2, NULL);

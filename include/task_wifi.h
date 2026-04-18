@@ -5,6 +5,10 @@
 #include <task_check_info.h>
 #include <task_webserver.h>
 
-void init_wifi(SystemHandles* handles);
+// Hàm khởi tạo Wi-Fi ban đầu
+void init_wifi();
+
+// Khai báo task Wi-Fi
+void wifi_task(void *pvParameters);
 
 #endif

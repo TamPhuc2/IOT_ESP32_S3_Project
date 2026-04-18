@@ -1,139 +1,85 @@
 #include "coreiot.h"
 
-WiFiClient espClient;
-PubSubClient client(espClient);
+// Các hằng số kết nối CoreIoT
+constexpr char TOKEN[] = "7d8thcolc3gb7jirlyp1";
+constexpr char THINGSBOARD_SERVER[] = "app.coreiot.io";
+constexpr uint16_t THINGSBOARD_PORT = 1883U;
 
-static SystemHandles* pGlobalHandles_coreIOT = NULL;
+constexpr uint32_t MAX_MESSAGE_SIZE = 1024U;
+constexpr char LED_STATE_ATTR[] = "ledState";
+constexpr char BLINKING_INTERVAL_ATTR[] = "blinkingInterval";
 
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("[CoreIOT] Message arrived [");
-  Serial.print(topic);
-  Serial.println("] ");
+WiFiClient wifiClient;
+Arduino_MQTT_Client mqttClient(wifiClient);
+ThingsBoard tb(mqttClient, MAX_MESSAGE_SIZE);
 
-  // Allocate a temporary buffer for the message
-  char message[length + 1];
-  memcpy(message, payload, length);
-  message[length] = '\0';
-  Serial.print("[CoreIOT] Payload: ");
-  Serial.println(message);
+volatile bool attributesChanged = false;
+volatile bool ledState = false;
+volatile uint16_t blinkingInterval = 1000U;
+uint32_t previousDataSend = 0;
+constexpr int16_t telemetrySendInterval = 10000U;
 
-  // Parse JSON
-  StaticJsonDocument<256> doc;
-  DeserializationError error = deserializeJson(doc, message);
-
-  if (error) {
-    Serial.print("deserializeJson() failed: ");
-    Serial.println(error.c_str());
-    return;
-  }
-
-  const char* method = doc["method"];
-  if (strcmp(method, "setStateLED") == 0) {
-    // Check params type (could be boolean, int, or string according to your RPC)
-    // Example: {"method": "setValueLED", "params": "ON"}
-    const char* params = doc["params"];
-
-    if (strcmp(params, "ON") == 0) {
-      Serial.println("[CoreIOT] Device turned ON via RPC.");
-      if (pGlobalHandles_coreIOT) {
-          xSemaphoreTake(pGlobalHandles_coreIOT->mutexDeviceState, portMAX_DELAY);
-          pGlobalHandles_coreIOT->deviceState.led_1 = true;
-          xSemaphoreGive(pGlobalHandles_coreIOT->mutexDeviceState);
-      }
-    } else {   
-      Serial.println("[CoreIOT] Device turned OFF via RPC.");
-      if (pGlobalHandles_coreIOT) {
-          xSemaphoreTake(pGlobalHandles_coreIOT->mutexDeviceState, portMAX_DELAY);
-          pGlobalHandles_coreIOT->deviceState.led_1 = false;
-          xSemaphoreGive(pGlobalHandles_coreIOT->mutexDeviceState);
-      }
-    }
-  } else {
-    Serial.print("[CoreIOT] Unknown method: ");
-    Serial.println(method);
-  }
+RPC_Response setLedSwitchState(const RPC_Data &data){
+    bool newState = data;
+    digitalWrite(48, newState);
+    attributesChanged = true;
+    return RPC_Response("setLedSwitchValue", setLedSwitchState);
 }
 
-void coreiot_task(void *pvParameters){
-    SystemHandles* sysHandles = (SystemHandles*)pvParameters;
-    pGlobalHandles_coreIOT = sysHandles;
-    
-    // Set callback initially
-    client.setCallback(callback);
+const std::array<RPC_Callback, 1U> callbacks = {
+    RPC_Callback{ "setLedSwitchValue", setLedSwitchState }
+};
 
-    String currentServer = "";
-    int currentPort = 0;
-    String currentToken = "";
+void processSharedAttributes(const Shared_Attribute_Data &data) {
+    for (auto it = data.begin(); it != data.end(); ++it){
+        if (strcmp(it->key().c_str(), BLINKING_INTERVAL_ATTR) == 0) {
+            blinkingInterval = it->value().as<uint16_t>();
+        } else if (strcmp(it->key().c_str(), LED_STATE_ATTR) == 0) {
+            ledState = it->value().as<bool>();
+            digitalWrite(48, ledState);
+        }
+    }
+    attributesChanged = true;
+}
 
-    while(1){
-        // Only attempt communication if WiFi is actually connected
+const Shared_Attribute_Callback attributes_callback(&processSharedAttributes, &LED_STATE_ATTR, &LED_STATE_ATTR+1);
+const Attribute_Request_Callback attribute_shared_request_callback(&processSharedAttributes, &LED_STATE_ATTR, &LED_STATE_ATTR+1);
+
+// Task CoreIoT
+void coreiot_task(void *pvParameters) {
+    SystemHandles* handles = (SystemHandles*)pvParameters;
+    for (;;) {
         if (WiFi.status() == WL_CONNECTED) {
-            
-            // Read dynamic config safely - Zero Global Protocol
-            xSemaphoreTake(sysHandles->mutexConfig, portMAX_DELAY);
-            String safeServer = sysHandles->sysData.coreiot_server;
-            int safePort = sysHandles->sysData.coreiot_port.toInt();
-            String safeToken = sysHandles->sysData.coreiot_token;
-            xSemaphoreGive(sysHandles->mutexConfig);
-            
-            // Re-setup server target if the config changed (from the UI)
-            if (safeServer != currentServer || safePort != currentPort) {
-                 client.disconnect();
-                 currentServer = safeServer;
-                 currentPort = safePort;
-                 client.setServer(currentServer.c_str(), currentPort);
-            }
-            currentToken = safeToken;
-
-            // Maintain MQTT connection
-            if (!client.connected() && !safeServer.isEmpty() && !safeToken.isEmpty()) {
-                Serial.print("[CoreIOT] Attempting MQTT connection to ");
-                Serial.print(currentServer);
-                Serial.println("...");
-                String clientId = "ESP32Client-";
-                clientId += String(random(0xffff), HEX);
-                
-                // Connect with Token as Username for CoreIOT
-                if (client.connect(clientId.c_str(), currentToken.c_str(), NULL)) {
-                    Serial.println("[CoreIOT] connected to CoreIOT Server!");
-                    client.subscribe("v1/devices/me/rpc/request/+");
-                } else {
-                    Serial.print("[CoreIOT] failed, rc=");
-                    Serial.print(client.state());
-                    Serial.println(" try again later");
-                }
-            }
-            
-            // Keep MQTT session alive and process incoming RPC
-            client.loop(); 
-
-            // Payload generation and transmission
-            if (client.connected()) {
-                // Peek latest queue data safely
-                float temp = 0.0; 
-                float humi = 0.0;
-                SensorData d = {0, 0, 0};
-                
-                if (sysHandles->qLcd != NULL) {
-                    if (xQueuePeek(sysHandles->qLcd, &d, 0) == pdTRUE) {
-                        temp = d.temperature;
-                        humi = d.humidity;
-                    }
-                }
-
-                String payload = "{\"temperature\":" + String(temp, 1) +  ",\"humidity\":" + String(humi, 1) + "}";
-                
-                client.publish("v1/devices/me/telemetry", payload.c_str());
-                Serial.print("[CoreIOT] Published payload: ");
-                Serial.println(payload);
-            }
-        } else {
-            // Mất mạng nội hạt, ngắt kết nối PubSub
-            if (client.connected()) {
-                client.disconnect();
+        if (!tb.connected()) {
+            if (tb.connect(THINGSBOARD_SERVER, TOKEN, THINGSBOARD_PORT)) {
+                tb.RPC_Subscribe(callbacks.cbegin(), callbacks.cend());
+                tb.Shared_Attributes_Subscribe(attributes_callback);
+                tb.Shared_Attributes_Request(attribute_shared_request_callback);
             }
         }
 
-        vTaskDelay(10000 / portTICK_PERIOD_MS);  // Publish every 10 seconds
+        if (attributesChanged) {
+            attributesChanged = false;
+            tb.sendAttributeData(LED_STATE_ATTR, digitalRead(48));
+        }
+
+        if (millis() - previousDataSend > telemetrySendInterval) {
+            previousDataSend = millis();
+            float temp = 0.0; 
+            float humi = 0.0;
+            SensorData d = {0, 0, 0};
+                
+            if (handles->qLcd != NULL) {
+                if (xQueuePeek(handles->qLcd, &d, 0) == pdTRUE) {
+                    temp = d.temperature;
+                    humi = d.humidity;
+                }
+            }
+            tb.sendTelemetryData("temperature", temp);
+            tb.sendTelemetryData("humidity", humi);
+        }
+      tb.loop();
     }
+    vTaskDelay(pdMS_TO_TICKS(100));
+  }
 }
