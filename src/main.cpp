@@ -11,6 +11,8 @@
 // Static instance holding our system handles (to be passed as a void* to tasks)
 static SystemHandles sysHandles;
 
+
+
 void setup()
 {
   Serial.begin(115200);
@@ -33,20 +35,19 @@ void setup()
   sysHandles.deviceState.led_2 = false;
   sysHandles.deviceState.tinyml_mode = false;
 
-    // Initialize Zero-Global credentials Default
-  // sysHandles.sysData.wifi_ssid = "tp";
-  // sysHandles.sysData.wifi_pass = "0123456789"; // Requirement
-  // sysHandles.sysData.fallback_ssid = "";
-  // sysHandles.sysData.fallback_pass = "";
-  // sysHandles.sysData.coreiot_server = "app.coreiot.io";
-  // sysHandles.sysData.coreiot_port = "1883"; // Note: HTTP will just use the server root, port 1883 might not be needed for HTTP
-  // sysHandles.sysData.coreiot_token = "ohvefr8ygpajb7f9fr9n";
-  // sysHandles.sysData.ap_ssid = "MY ESP32_S3 NETWORK";
-  // sysHandles.sysData.ap_pass = "12345678";
+  // Initialize Zero-Global credentials Default
+  sysHandles.sysData.wifi_ssid = "";
+  sysHandles.sysData.wifi_pass = ""; // Requirement
+  sysHandles.sysData.fallback_ssid = "";
+  sysHandles.sysData.fallback_pass = "";
+  sysHandles.sysData.coreiot_server = "";
+  sysHandles.sysData.coreiot_port = ""; // Note: HTTP will just use the server root, port 1883 might not be needed for HTTP
+  sysHandles.sysData.coreiot_token = "";
+  sysHandles.sysData.ap_ssid = "MY ESP32_S3 NETWORK";
+  sysHandles.sysData.ap_pass = "12345678";
 
   // Init Event-Driven WiFi (Zero-blocking)
-  // init_wifi(&sysHandles);
-  init_wifi();
+  init_wifi(&sysHandles);
 
   // Tasks creation - passing the sysHandles pointer to pvParameters
   // xTaskCreate(led_blinky, "Task LED Blink", 2048, (void*)&sysHandles, 2, NULL);

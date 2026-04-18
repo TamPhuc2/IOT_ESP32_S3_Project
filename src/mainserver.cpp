@@ -21,7 +21,7 @@ void handleStatus(WebServer& server, SystemHandles* handles) {
 }
 
 
-// Handler for sensor data JSON
+// Hàm xử lý dữ liệu cảm biến
 void handleSensors(WebServer& server, SystemHandles* handles) {
     SensorData d = {0, 0, 0};
     // Peek from queue if available
@@ -32,23 +32,7 @@ void handleSensors(WebServer& server, SystemHandles* handles) {
     server.send(200, "application/json", json);
 }
 
-// Handler for LED1 toggle
-// void handleLed_1(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
-//     if (server.hasArg("state")) {
-//         String state = server.arg("state");
-//         bool turnOn = (state == "on");
-        
-//         xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
-//         handles->deviceState.led_1 = turnOn;
-//         rgb_4_led.setPixelColor(LED_1_PIN, turnOn ? rgb_4_led.Color(255, 255, 255) : rgb_4_led.Color(0, 0, 0));
-//         rgb_4_led.show();
-//         xSemaphoreGive(handles->mutexDeviceState);
-        
-//         server.send(200, "application/json", "{\"led1\":" + String(turnOn ? 1 : 0) + "}");
-//     } else {
-//         server.send(400, "text/plain", "Missing state");
-//     }
-// }
+// Hàm xử lý led 1
 void handleLed_1(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
 
     xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
@@ -79,24 +63,8 @@ void handleLed_1(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &r
 
     server.send(200, "application/json", json);
 }
-// Handler for LED2 toggle
-// void handleLed_2(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
-//     if (server.hasArg("state")) {
-//         String state = server.arg("state");
-//         bool turnOn = (state == "on");
-        
-//         xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
-//         handles->deviceState.led_2 = turnOn;
-//         rgb_4_led.setPixelColor(LED_2_PIN, turnOn ? rgb_4_led.Color(255, 255, 255) : rgb_4_led.Color(0, 0, 0));
-//         rgb_4_led.show();
-//         xSemaphoreGive(handles->mutexDeviceState);
-        
-//         server.send(200, "application/json", "{\"led2\":" + String(turnOn ? 1 : 0) + "}");;
-//     } else {
-//         server.send(400, "text/plain", "Missing state");
-//     }
-// }
 
+// Hàm xử lý led 2
 void handleLed_2(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
 
     xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
@@ -127,18 +95,8 @@ void handleLed_2(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &r
 
     server.send(200, "application/json", json);
 }
-// void handleOff(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
 
-//     xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
-//     handles->deviceState.led_1 = false;
-//     handles->deviceState.led_2 = false;
-//     rgb_4_led.setPixelColor(LED_1_PIN, rgb_4_led.Color(0, 0, 0));
-//     rgb_4_led.setPixelColor(LED_2_PIN, rgb_4_led.Color(0, 0, 0));
-//     rgb_4_led.show();
-//     xSemaphoreGive(handles->mutexDeviceState);
-
-//     server.send(200, "text/plain", "All devices OFF");
-// }
+// Hàm xử lý nút tắt tất cả
 void handleOff(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
 
     xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
@@ -159,6 +117,7 @@ void handleOff(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb
     server.send(200, "application/json", json);
 }
 
+// Hàm xử lý dự đoán 
 void handleTinyML(WebServer& server, SystemHandles* handles) {
     String switchParam = server.arg("switch");
     String json;
@@ -207,11 +166,6 @@ void handleTinyML(WebServer& server, SystemHandles* handles) {
     server.send(200, "application/json", json);
 }
 
-// // Placeholder for WiFi connection (can be expanded)
-// void handleConnect(WebServer& server) {
-//     server.send(200, "text/plain", "Connecting...");
-// }
-
 // Handle dynamic config from test.html
 void handleConnect(WebServer& server, SystemHandles* handles) {
     if (server.hasArg("ssid") && server.hasArg("pass") && server.hasArg("token")) {
@@ -228,21 +182,46 @@ void handleConnect(WebServer& server, SystemHandles* handles) {
         handles->sysData.coreiot_port = server.arg("port");
         handles->sysData.coreiot_token = server.arg("token");
         xSemaphoreGive(handles->mutexConfig);
+
+        // Lưu xuống Preferences
+        Preferences prefs;
+        prefs.begin("config", false);
+        prefs.putString("ssid", handles->sysData.wifi_ssid);
+        prefs.putString("pass", handles->sysData.wifi_pass);
+        prefs.putString("token", handles->sysData.coreiot_token);
+        prefs.putString("server", handles->sysData.coreiot_server);
+        prefs.putInt("port", handles->sysData.coreiot_port.toInt());
+        prefs.end();
         
         server.send(200, "text/plain", "Cấu hình thành công! ESP32 đang khởi động lại kết nối...");
         
-        // Disconnect forces STA task (via WiFiEvent) to retry with new credentials
-        WiFi.disconnect();
+        // Tắt AP và chuyển sang STA
+        WiFi.softAPdisconnect(true);   // tắt Access Point
+        WiFi.mode(WIFI_STA);
+        WiFi.begin(handles->sysData.wifi_ssid.c_str(), handles->sysData.wifi_pass.c_str());
     } else {
         server.send(400, "text/plain", "Thiếu tham số bắt buộc");
     }
 }
 
-// void startAP() {
-//     WiFi.mode(WIFI_AP);
-//     // Use globals for ssid/password as they are defined in global.cpp
-//     WiFi.softAP(ssid.c_str(), password.c_str());
-// }
+void resetConfig(SystemHandles* handles) {
+    Preferences prefs;
+    prefs.begin("config", false);
+    prefs.clear();   // xóa toàn bộ cấu hình
+    prefs.end();
+
+    handles->sysData.wifi_ssid = "";
+    handles->sysData.wifi_pass = "";
+    handles->sysData.coreiot_server = "";
+    handles->sysData.coreiot_token = "";
+    handles->sysData.coreiot_port = "";
+
+    // Bật lại AP để nhập cấu hình mới
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(handles->sysData.ap_ssid, handles->sysData.ap_pass);
+    Serial.println("Reset config chuyển về AP mode");
+}
 
 void main_server_task(void *pvParameters) {
     SystemHandles* handles = (SystemHandles*)pvParameters;
@@ -251,14 +230,9 @@ void main_server_task(void *pvParameters) {
     if (!SPIFFS.begin(true)) {
         Serial.println("SPIFFS Mount Failed");
     }
-    // else {
-    //     Serial.println("Ok roi ku");
-    // }
 
     // Initialize Pins
-    pinMode(POWER_PIN, OUTPUT);
     pinMode(LED_PIN, OUTPUT);
-    pinMode(FAN_PIN, OUTPUT);
     pinMode(0, INPUT_PULLUP); // BOOT Button
 
     // Init NeoPixel local
@@ -278,7 +252,7 @@ void main_server_task(void *pvParameters) {
     server.on("/chart.js", [&server]() {handleFile(server, "/chart.js", "application/javascript"); }); 
     server.on("/script.js", [&server]() { handleFile(server, "/script.js", "application/javascript"); });
 
-    //
+    // Thiết lập kết nối STA
     server.on("/connect", HTTP_GET, [&server, handles]() { handleConnect(server, handles); });
 
     // Serve icons dynamically
@@ -325,11 +299,11 @@ void main_server_task(void *pvParameters) {
             last_led_2 = current_led_2;
         }
         
-        // BOOT Button to force AP mode (if switched to STA)
+        // Nút BOOT để chuyển sang AP 
         if (digitalRead(0) == LOW) {
             vTaskDelay(pdMS_TO_TICKS(100));
             if (digitalRead(0) == LOW) {
-                //startAP();
+                resetConfig(handles);
             }
         }
         

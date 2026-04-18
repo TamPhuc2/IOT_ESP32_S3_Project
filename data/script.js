@@ -246,48 +246,6 @@ function loadStatus(){
   loadStatus2();
 }
 
-// Hàm xử lý trạng thái led 1
-
-// function loadStatus1() {
-//   fetch('/status')
-//     .then(response => response.json())
-//     .then(data => {
-//       let btn = document.getElementById("btn-led1");
-
-//       if (data.led1 === 1) {
-//         btn.innerText = "Tắt Đèn";
-//         btn.classList.add("on");
-//         btn.classList.remove("off");
-//       } else {
-//         btn.innerText = "Bật Đèn";
-//         btn.classList.add("off");
-//         btn.classList.remove("on");
-//       }
-//     })
-//     .catch(error => console.error("Lỗi khi load trạng thái:", error));
-// }
-
-// // Hàm xử lý trạng thái led 2
-
-// function loadStatus2() {
-//   fetch('/status')
-//     .then(response => response.json())
-//     .then(data => {
-//       let btn = document.getElementById("btn-led2");
-
-//       if (data.led2 === 1) {
-//         btn.innerText = "Tắt Đèn";
-//         btn.classList.add("on");
-//         btn.classList.remove("off");
-//       } else {
-//         btn.innerText = "Bật Đèn";
-//         btn.classList.add("off");
-//         btn.classList.remove("on");
-//       }
-//     })
-//     .catch(error => console.error("Lỗi khi load trạng thái:", error));
-// }
-
 function loadStatus1() {
   fetch('/status')
     .then(response => response.json())
