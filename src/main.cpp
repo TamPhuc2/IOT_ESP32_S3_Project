@@ -16,7 +16,7 @@ static SystemHandles sysHandles;
 void setup()
 {
   Serial.begin(115200);
-
+  pinMode(48, OUTPUT);
   // Initialize Queues with capacity for 1 SensorData structure
   sysHandles.qLed = xQueueCreate(1, sizeof(SensorData));
   sysHandles.qNeo = xQueueCreate(1, sizeof(SensorData));

@@ -18,7 +18,7 @@ RPC_Response setLedSwitchState(const RPC_Data &data){
     bool newState = data;
     Serial.println("Switch state change: ");
     Serial.print(newState);
-    digitalWrite(48, newState);
+    digitalWrite(48, newState ? HIGH : LOW);
     attributesChanged = true;
     return RPC_Response("setLedSwitchValue", newState);
 }
@@ -58,11 +58,11 @@ void coreiot_task(void *pvParameters) {
             if (tb.connect(handles->sysData.coreiot_server.c_str(), handles->sysData.coreiot_token.c_str(), handles->sysData.coreiot_port.toInt())){
                 Serial.println("Successed to connect");
                 tb.RPC_Subscribe(callbacks.cbegin(), callbacks.cend());
-                Serial.println("Failed to subscribe for RPC");
+                Serial.println("Successed to subscribe for RPC");
                 tb.Shared_Attributes_Subscribe(attributes_callback);
-                Serial.println("Failed to subscribe for shared attribute updates");
+                Serial.println("Successed to subscribe for shared attribute updates");
                 tb.Shared_Attributes_Request(attribute_shared_request_callback);
-                Serial.println("Failed to request for shared attributes");
+                Serial.println("Successed to request for shared attributes");
             }
         }
 

@@ -59,6 +59,7 @@ struct TinyMLData{
 #define LED_1_PIN   0
 #define LED_2_PIN   1
 
+
 // struct holding device states for Web Server
 struct DeviceStates {
     bool led_1;
