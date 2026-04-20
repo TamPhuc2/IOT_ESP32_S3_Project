@@ -1,5 +1,8 @@
 #include "global.h"
 
+#define NODE_MODE_A // Mạch A: Get data from sensors, Send data(Auto Fallback)
+//#define NODE_MODE_B // Mạch B: Actuator, GET data from Cloud, Subscribe MQTT
+
 #include "led_blinky.h"
 #include "neo_blinky.h"
 #include "temp_humi_monitor.h"
@@ -7,6 +10,8 @@
 #include "tinyml.h"
 #include "coreiot.h"
 #include "task_wifi.h"
+
+void node_b_actuator_task(void *pvParameters);
 
 // Static instance holding our system handles (to be passed as a void* to tasks)
 static SystemHandles sysHandles;
@@ -39,27 +44,120 @@ void setup()
   sysHandles.sysData.fallback_ssid = "";
   sysHandles.sysData.fallback_pass = "";
   sysHandles.sysData.coreiot_server = "app.coreiot.io";
-  sysHandles.sysData.coreiot_port = "1883"; // Note: HTTP will just use the server root, port 1883 might not be needed for HTTP
-  sysHandles.sysData.coreiot_token = "ohvefr8ygpajb7f9fr9n";
+  sysHandles.sysData.coreiot_port = "1883"; 
+  // sysHandles.sysData.coreiot_token = "ohvefr8ygpajb7f9fr9n";
+  sysHandles.sysData.coreiot_token = "CooZmkhZjSLxzxm6spkH";
   sysHandles.sysData.ap_ssid = "MY ESP32_S3 NETWORK";
   sysHandles.sysData.ap_pass = "12345678";
 
   // Init Event-Driven WiFi (Zero-blocking)
   init_wifi(&sysHandles);
-
-  // Tasks creation - passing the sysHandles pointer to pvParameters
+// ========================================================
+// NODE A: Sensor & CoreIOT Client Task
+#ifdef NODE_MODE_A
+  Serial.println(">>> NODE A <<<");
+  
   xTaskCreate(led_blinky, "Task LED Blink", 2048, (void*)&sysHandles, 2, NULL);
   xTaskCreate(neo_blinky, "Task NEO Blink", 2048, (void*)&sysHandles, 2, NULL);
   xTaskCreate(temp_humi_monitor, "Task TEMP HUMI Monitor", 2048, (void*)&sysHandles, 2, NULL);
   xTaskCreate(temp_humi_lcd_display, "Test LCD", 4096, (void*)&sysHandles, 2, NULL);
-  
-  xTaskCreate(main_server_task, "Task Main Server" ,8192, (void*)&sysHandles, 2, NULL);
-  xTaskCreate(tiny_ml_task, "Tiny ML Task" ,2048  ,(void*)&sysHandles  ,2 , NULL);
-  xTaskCreate(coreiot_task, "CoreIOT Task" ,4096  ,(void*)&sysHandles  ,2 , NULL);
-  
-  // xTaskCreate(Task_Toogle_BOOT, "Task_Toogle_BOOT", 4096, NULL, 2, NULL);
+  xTaskCreate(tiny_ml_task, "Tiny ML Task", 2048, (void*)&sysHandles, 2, NULL);
+  xTaskCreate(coreiot_task, "CoreIOT/FallBack Task", 5120, (void*)&sysHandles, 2, NULL);
+
+// ========================================================
+// NODE B: Actuator & MQTT Client Task
+#elif defined(NODE_MODE_B)
+  Serial.println(">>> NODE B  <<<");
+  xTaskCreate(node_b_actuator_task, "Node B Task", 5120, (void*)&sysHandles, 2, NULL);
+#endif
+
+  // Web server always runs (AP/STA)
+  xTaskCreate(main_server_task, "Task Main Server", 8192, (void*)&sysHandles, 2, NULL);
 }
 
 void loop(){
   vTaskDelete(NULL);
 }
+
+// ========================================================
+// NODE B  MQTT CLIENT CONFIGURATION
+// ========================================================
+#ifdef NODE_MODE_B
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
+#include <Adafruit_NeoPixel.h>
+
+static Adafruit_NeoPixel* nodeBStrip = NULL;
+
+static void node_b_mqtt_callback(char* topic, byte* payload, unsigned int length) {
+  // Parsing payload
+  String message = "";
+  for (int i = 0; i < length; i++) message += (char)payload[i];
+  
+  StaticJsonDocument<200> doc;
+  if (!deserializeJson(doc, message)) {
+      const char* cmd = doc["cmd"];
+      if (cmd) {
+         if (nodeBStrip == NULL) return;
+
+         if (strcmp(cmd, "ON") == 0) {
+             // Turn on led GPIO 48
+             digitalWrite(ACTUATOR_2_PIN, HIGH);
+             
+             // Turn on NeoPixel GPIO 45 - red 
+             nodeBStrip->setPixelColor(0, nodeBStrip->Color(255, 0, 0));
+             nodeBStrip->show();
+             
+             Serial.println("[NodeB] Received ON -> Turn on NeoPixel (45) and LED (48)");
+         } else if (strcmp(cmd, "OFF") == 0) {
+             // Turn off led GPIO 48
+             digitalWrite(ACTUATOR_2_PIN, LOW);
+             
+             // Turn off NeoPixel GPIO 45
+             nodeBStrip->setPixelColor(0, nodeBStrip->Color(0, 0, 0));
+             nodeBStrip->show();
+             
+             Serial.println("[NodeB] Received OFF -> Turn off NeoPixel (45) and LED (48)");
+         }
+      }
+  }
+}
+
+void node_b_actuator_task(void *pvParameters) {
+  SystemHandles* sysHandles = (SystemHandles*)pvParameters;
+  
+  if (nodeBStrip == NULL) {
+      nodeBStrip = new Adafruit_NeoPixel(1, ACTUATOR_1_PIN, NEO_GRB + NEO_KHZ800);
+      nodeBStrip->begin();
+      nodeBStrip->setBrightness(50);
+      nodeBStrip->clear();
+      nodeBStrip->show();
+  }
+
+  pinMode(ACTUATOR_2_PIN, OUTPUT);
+  digitalWrite(ACTUATOR_2_PIN, LOW);
+
+  WiFiClient espClient;
+  PubSubClient client(espClient);
+  client.setCallback(node_b_mqtt_callback);
+
+  while (1) {
+    if (WiFi.status() == WL_CONNECTED) {
+       // Kể cả lúc rớt mạng, cứ reconnect vào LOCAL_BROKER_IP
+       if (!client.connected()) {
+          client.setServer(LOCAL_BROKER_IP, 1883);
+          String clientId = "NodeBClient-";
+          clientId += String(random(0xffff), HEX);
+          if (client.connect(clientId.c_str())) {
+              Serial.println("[NodeB] Connected to Edge Gateway!");
+              client.subscribe("home/actuators/led1");
+          } else {
+              vTaskDelay(5000 / portTICK_PERIOD_MS);
+          }
+       }
+       client.loop();
+    }
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+}
+#endif

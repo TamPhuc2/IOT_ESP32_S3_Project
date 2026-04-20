@@ -32,23 +32,6 @@ void handleSensors(WebServer& server, SystemHandles* handles) {
     server.send(200, "application/json", json);
 }
 
-// Handler for LED1 toggle
-// void handleLed_1(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
-//     if (server.hasArg("state")) {
-//         String state = server.arg("state");
-//         bool turnOn = (state == "on");
-        
-//         xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
-//         handles->deviceState.led_1 = turnOn;
-//         rgb_4_led.setPixelColor(LED_1_PIN, turnOn ? rgb_4_led.Color(255, 255, 255) : rgb_4_led.Color(0, 0, 0));
-//         rgb_4_led.show();
-//         xSemaphoreGive(handles->mutexDeviceState);
-        
-//         server.send(200, "application/json", "{\"led1\":" + String(turnOn ? 1 : 0) + "}");
-//     } else {
-//         server.send(400, "text/plain", "Missing state");
-//     }
-// }
 void handleLed_1(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
 
     xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
@@ -79,23 +62,6 @@ void handleLed_1(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &r
 
     server.send(200, "application/json", json);
 }
-// Handler for LED2 toggle
-// void handleLed_2(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
-//     if (server.hasArg("state")) {
-//         String state = server.arg("state");
-//         bool turnOn = (state == "on");
-        
-//         xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
-//         handles->deviceState.led_2 = turnOn;
-//         rgb_4_led.setPixelColor(LED_2_PIN, turnOn ? rgb_4_led.Color(255, 255, 255) : rgb_4_led.Color(0, 0, 0));
-//         rgb_4_led.show();
-//         xSemaphoreGive(handles->mutexDeviceState);
-        
-//         server.send(200, "application/json", "{\"led2\":" + String(turnOn ? 1 : 0) + "}");;
-//     } else {
-//         server.send(400, "text/plain", "Missing state");
-//     }
-// }
 
 void handleLed_2(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
 
@@ -127,18 +93,7 @@ void handleLed_2(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &r
 
     server.send(200, "application/json", json);
 }
-// void handleOff(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
 
-//     xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
-//     handles->deviceState.led_1 = false;
-//     handles->deviceState.led_2 = false;
-//     rgb_4_led.setPixelColor(LED_1_PIN, rgb_4_led.Color(0, 0, 0));
-//     rgb_4_led.setPixelColor(LED_2_PIN, rgb_4_led.Color(0, 0, 0));
-//     rgb_4_led.show();
-//     xSemaphoreGive(handles->mutexDeviceState);
-
-//     server.send(200, "text/plain", "All devices OFF");
-// }
 void handleOff(WebServer& server, SystemHandles* handles, Adafruit_NeoPixel &rgb_4_led) {
 
     xSemaphoreTake(handles->mutexDeviceState, portMAX_DELAY);
@@ -207,10 +162,7 @@ void handleTinyML(WebServer& server, SystemHandles* handles) {
     server.send(200, "application/json", json);
 }
 
-// // Placeholder for WiFi connection (can be expanded)
-// void handleConnect(WebServer& server) {
-//     server.send(200, "text/plain", "Connecting...");
-// }
+
 
 // Handle dynamic config from test.html
 void handleConnect(WebServer& server, SystemHandles* handles) {
@@ -238,11 +190,6 @@ void handleConnect(WebServer& server, SystemHandles* handles) {
     }
 }
 
-// void startAP() {
-//     WiFi.mode(WIFI_AP);
-//     // Use globals for ssid/password as they are defined in global.cpp
-//     WiFi.softAP(ssid.c_str(), password.c_str());
-// }
 
 void main_server_task(void *pvParameters) {
     SystemHandles* handles = (SystemHandles*)pvParameters;
@@ -251,9 +198,6 @@ void main_server_task(void *pvParameters) {
     if (!SPIFFS.begin(true)) {
         Serial.println("SPIFFS Mount Failed");
     }
-    // else {
-    //     Serial.println("Ok roi ku");
-    // }
 
     // Initialize Pins
     pinMode(POWER_PIN, OUTPUT);

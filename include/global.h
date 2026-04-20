@@ -7,6 +7,10 @@
 #include "freertos/semphr.h"
 #include "freertos/queue.h"
 
+// IP LOCAL BROKER ADDRESS(Python Edge Gateway)
+#define LOCAL_BROKER_IP "172.20.10.3"
+// #define LOCAL_BROKER_IP "10.0.217.167"
+
 // threhold of temp and humi
 #define TEMP_CRITICAL_COLD      10
 #define TEMP_COOL               18
@@ -55,6 +59,9 @@ struct TinyMLData{
 #define POWER_PIN 47
 #define LED_PIN 38
 #define FAN_PIN 48
+
+#define ACTUATOR_1_PIN 45
+#define ACTUATOR_2_PIN 48
 
 #define LED_1_PIN   0
 #define LED_2_PIN   1
