@@ -1,7 +1,7 @@
 #include "global.h"
 
-#define NODE_MODE_A // Mạch A: Get data from sensors, Send data(Auto Fallback)
-//#define NODE_MODE_B // Mạch B: Actuator, GET data from Cloud, Subscribe MQTT
+//#define NODE_MODE_A // Mạch A: Get data from sensors, Send data(Auto Fallback)
+#define NODE_MODE_B // Mạch B: Actuator, GET data from Cloud, Subscribe MQTT
 
 #include "led_blinky.h"
 #include "neo_blinky.h"
@@ -88,6 +88,7 @@ void loop(){
 #include <Adafruit_NeoPixel.h>
 
 static Adafruit_NeoPixel* nodeBStrip = NULL;
+static bool isWarning = false; // Biến trạng thái cảnh báo
 
 static void node_b_mqtt_callback(char* topic, byte* payload, unsigned int length) {
   // Parsing payload
@@ -101,23 +102,11 @@ static void node_b_mqtt_callback(char* topic, byte* payload, unsigned int length
          if (nodeBStrip == NULL) return;
 
          if (strcmp(cmd, "ON") == 0) {
-             // Turn on led GPIO 48
-             digitalWrite(ACTUATOR_2_PIN, HIGH);
-             
-             // Turn on NeoPixel GPIO 45 - red 
-             nodeBStrip->setPixelColor(0, nodeBStrip->Color(255, 0, 0));
-             nodeBStrip->show();
-             
-             Serial.println("[NodeB] Received ON -> Turn on NeoPixel (45) and LED (48)");
+             isWarning = true; 
+             Serial.println("[NodeB] Received ON -> Start Blinking Mode");
          } else if (strcmp(cmd, "OFF") == 0) {
-             // Turn off led GPIO 48
-             digitalWrite(ACTUATOR_2_PIN, LOW);
-             
-             // Turn off NeoPixel GPIO 45
-             nodeBStrip->setPixelColor(0, nodeBStrip->Color(0, 0, 0));
-             nodeBStrip->show();
-             
-             Serial.println("[NodeB] Received OFF -> Turn off NeoPixel (45) and LED (48)");
+             isWarning = false;
+             Serial.println("[NodeB] Received OFF -> Stop Blinking/Turn Off");
          }
       }
   }
@@ -141,9 +130,12 @@ void node_b_actuator_task(void *pvParameters) {
   PubSubClient client(espClient);
   client.setCallback(node_b_mqtt_callback);
 
+  uint32_t lastBlinkTime = 0;
+  bool blinkState = false;
+
   while (1) {
     if (WiFi.status() == WL_CONNECTED) {
-       // Kể cả lúc rớt mạng, cứ reconnect vào LOCAL_BROKER_IP
+       // Reconnect logic
        if (!client.connected()) {
           client.setServer(LOCAL_BROKER_IP, 1883);
           String clientId = "NodeBClient-";
@@ -157,7 +149,32 @@ void node_b_actuator_task(void *pvParameters) {
        }
        client.loop();
     }
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+
+    // --- LOGIC CHỚP ĐÈN (BLINKING LOGIC) ---
+    if (isWarning) {
+      if (millis() - lastBlinkTime >= 500) { // Chớp mỗi 500ms
+          lastBlinkTime = millis();
+          blinkState = !blinkState;
+
+          if (blinkState) {
+              digitalWrite(ACTUATOR_2_PIN, HIGH);
+              nodeBStrip->setPixelColor(0, nodeBStrip->Color(255, 0, 0)); // Đỏ
+          } else {
+              digitalWrite(ACTUATOR_2_PIN, LOW);
+              nodeBStrip->setPixelColor(0, nodeBStrip->Color(0, 0, 0)); // Tắt
+          }
+          nodeBStrip->show();
+      }
+    } else {
+      // Khi không cảnh báo, đảm bảo đèn luôn tắt
+      digitalWrite(ACTUATOR_2_PIN, LOW);
+      if (nodeBStrip) {
+          nodeBStrip->setPixelColor(0, nodeBStrip->Color(0,0,0));
+          nodeBStrip->show();
+      }
+    }
+
+    vTaskDelay(50 / portTICK_PERIOD_MS); // Tăng tần suất kiểm tra để nháy mượt hơn
   }
 }
 #endif

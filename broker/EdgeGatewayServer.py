@@ -72,7 +72,7 @@ def on_local_message(client, userdata, msg):
         device_id = data.get("id", "Sensor_Node_1") 
         temp = data.get("temp", data.get("temperature"))
         humi = data.get("humi", data.get("humidity"))
-        
+
         if temp is not None:
             # RULE LOGIC for Node B 
             if float(humi) > 60:
